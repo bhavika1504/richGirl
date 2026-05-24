@@ -1,0 +1,48 @@
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
+import dotenv from 'dotenv';
+import { User } from './models/User.js';
+
+dotenv.config();
+
+const seedAdmin = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ Connected to MongoDB Atlas');
+
+    const adminEmail = 'admin@richgirl.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+
+    if (existingAdmin) {
+      console.log('⚠️ Admin user already exists. Email:', adminEmail);
+      process.exit(0);
+    }
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('RGirl_ad1990!', salt);
+
+    const newAdmin = new User({
+      name: 'Super Admin',
+      email: adminEmail,
+      password: hashedPassword,
+      phone: '9999999999',
+      isAdmin: true,
+      isVerified: true
+    });
+
+    await newAdmin.save();
+    console.log('🎉 Admin user successfully created!');
+    console.log('-----------------------------------');
+    console.log('Email: admin@richgirl.com');
+    console.log('Password: RGirl_ad1990!');
+    console.log('-----------------------------------');
+    
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ Error creating admin user:', error);
+    process.exit(1);
+  }
+};
+
+seedAdmin();
