@@ -30,11 +30,7 @@ export function Navbar() {
 
   const handleUserClick = () => {
     if (user) {
-      if (user.isAdmin) {
-        navigate('/admin');
-      } else {
-        navigate('/profile');
-      }
+      navigate('/profile');
     } else {
       setIsAuthPromptOpen(true);
     }

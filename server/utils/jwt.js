@@ -1,22 +1,21 @@
 // server/utils/jwt.js
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallbacksecret';
-const JWT_EXPIRES_IN = '7d'; // 7 days
 
 export function generateToken(user) {
-  // Payload contains minimal needed info
+  const secret = process.env.JWT_SECRET || 'richgirl_jwt_secret_fallback_key_2024';
   const payload = {
-    id: user._id,
+    id: user._id || user.id,
     email: user.email,
     isAdmin: !!user.isAdmin,
   };
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN });
+  return jwt.sign(payload, secret, { expiresIn: '7d' });
 }
 
 export function verifyToken(token) {
+  const secret = process.env.JWT_SECRET || 'richgirl_jwt_secret_fallback_key_2024';
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, secret);
   } catch (err) {
     return null;
   }

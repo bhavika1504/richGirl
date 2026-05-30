@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Mail, Lock, User, Phone, Chrome, Loader2, ArrowRight } from 'lucide-react';
+import { X, Mail, Lock, User, Phone, Chrome, Loader2, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router';
+import { api } from '../services/api';
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -22,6 +23,7 @@ export default function AuthPromptModal({ isOpen, onClose }: AuthPromptModalProp
   // Form Fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
 
@@ -70,8 +72,6 @@ export default function AuthPromptModal({ isOpen, onClose }: AuthPromptModalProp
     setError('');
     setLoading(true);
     try {
-      // Inline password reset request (we will build this endpoint)
-      const { api } = await import('../services/api');
       await api.forgotPassword(email);
       setSuccess('Reset link generated! Please check console.');
       setTimeout(() => {
@@ -181,13 +181,20 @@ export default function AuthPromptModal({ isOpen, onClose }: AuthPromptModalProp
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-12 pl-11 pr-4 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20"
+                      className="w-full h-12 pl-11 pr-11 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 
@@ -253,13 +260,20 @@ export default function AuthPromptModal({ isOpen, onClose }: AuthPromptModalProp
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
-                      type="password"
+                      type={showPassword ? 'text' : 'password'}
                       required
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full h-11 pl-11 pr-4 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20"
+                      className="w-full h-11 pl-11 pr-11 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
                 </div>
 

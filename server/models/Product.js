@@ -7,7 +7,11 @@ const productSchema = new mongoose.Schema({
   categoryName: { type: String },
   type: { type: String, enum: ['indian', 'western'] },
   price: { type: Number, required: true },
+  originalPrice: { type: Number },
   discountPrice: { type: Number },
+  discount: { type: Number, default: 0 },
+  inStock: { type: Boolean, default: true },
+  totalStock: { type: Number, default: 0 },
   fabric: { type: String },
   length: { type: String },
   occasion: { type: String },
@@ -15,7 +19,10 @@ const productSchema = new mongoose.Schema({
   colors: [{ type: String }],
   sizes: [{
     size: { type: String },
-    stock: { type: Number, default: 0 }
+    variants: [{
+      color: { type: String },
+      stock: { type: Number, default: 0 }
+    }]
   }],
   ratings: {
     average: { type: Number, default: 0 },

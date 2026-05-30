@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import { AuthProvider } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Home } from './components/Home';
@@ -47,6 +47,7 @@ export default function App() {
           <Route path="/track" element={<TrackOrder />} />
           <Route path="/track/:id" element={<TrackOrder />} />
           <Route path="/order-success" element={<OrderSuccess />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

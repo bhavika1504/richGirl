@@ -175,20 +175,24 @@ export function ProductCard({ product, index }: ProductCardProps) {
 
         {/* Sizes */}
         <div className="flex gap-1 flex-wrap">
-          {product.sizes.slice(0, 3).map((size) => (
-            <span
-              key={size}
-              className="px-2 py-0.5 rounded border"
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'clamp(9px, 1.5vw, 10px)',
-                color: 'var(--brand-dark-text)',
-                borderColor: 'var(--brand-border)'
-              }}
-            >
-              {size}
-            </span>
-          ))}
+          {product.sizes && product.sizes.slice(0, 3).map((sizeObj, idx) => {
+            const sizeStr = typeof sizeObj === 'object' && sizeObj !== null ? (sizeObj.size || sizeObj.name) : sizeObj;
+            const sizeKey = typeof sizeObj === 'object' && sizeObj !== null ? (sizeObj._id || sizeObj.size || idx) : sizeObj;
+            return (
+              <span
+                key={sizeKey}
+                className="px-2 py-0.5 rounded border"
+                style={{
+                  fontFamily: 'var(--font-body)',
+                  fontSize: 'clamp(9px, 1.5vw, 10px)',
+                  color: 'var(--brand-dark-text)',
+                  borderColor: 'var(--brand-border)'
+                }}
+              >
+                {sizeStr}
+              </span>
+            );
+          })}
         </div>
       </div>
 

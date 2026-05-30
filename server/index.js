@@ -20,6 +20,9 @@ import { sendWhatsAppMessage } from './services/whatsappService.js';
 import { generateToken } from './utils/jwt.js';
 import { VerificationToken } from './models/VerificationToken.js';
 import { requireAuth } from './middleware/auth.js';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -28,7 +31,48 @@ app.use(express.json());
 
 // Connect to MongoDB Atlas
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ Connected to MongoDB Atlas'))
+  .then(async () => {
+    console.log('✅ Connected to MongoDB Atlas');
+    try {
+      const customerEmail = 'customer@example.com';
+      const existingCustomer = await User.findOne({ email: customerEmail });
+      if (!existingCustomer) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash('mockpassword123', salt);
+        const defaultCustomer = new User({
+          name: 'Default Customer',
+          email: customerEmail,
+          password: hashedPassword,
+          phone: '9999988888',
+          isAdmin: false,
+          isVerified: true
+        });
+        await defaultCustomer.save();
+
+        const defaultCart = new Cart({ userId: defaultCustomer._id, items: [] });
+        await defaultCart.save();
+        console.log('🎉 Default customer customer@example.com seeded successfully.');
+      }
+      // Seed Categories
+      const categoriesToSeed = [
+        "3 piece dress", "2 piece dress", "kurtis", "tunics", "tops",
+        "shirts", "jumpsuits", "jeans", "cord sets-western",
+        "cord sets-indian", "wester dresses", "skirts", "tshirts",
+        "shorts", "pants"
+      ];
+      for (const catName of categoriesToSeed) {
+        const slug = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        await Category.findOneAndUpdate(
+          { slug },
+          { name: catName, slug, type: 'indian', displayOrder: 10 },
+          { upsert: true }
+        );
+      }
+      console.log('✅ Categories seeded successfully');
+    } catch (err) {
+      console.error('Error seeding data on startup:', err);
+    }
+  })
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
 // =======================
@@ -40,7 +84,7 @@ app.get('/api/products', async (req, res) => {
   try {
     const { category } = req.query;
     let query = {};
-    
+
     if (category) {
       // If category is a slug, we might need to find the category first
       const categoryDoc = await Category.findOne({ slug: category });
@@ -51,14 +95,15 @@ app.get('/api/products', async (req, res) => {
         query.categoryName = { $regex: new RegExp(category, 'i') };
       }
     }
-    
+
     const products = await Product.find(query);
-    // Map _id to id for frontend compatibility, though frontend should ideally use _id
+    // Map _id to id and images[0] to image for frontend compatibility
     const formattedProducts = products.map(p => ({
       ...p.toObject(),
-      id: p._id
+      id: p._id.toString(),
+      image: p.images?.[0] || ''
     }));
-    
+
     res.json(formattedProducts);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -69,7 +114,11 @@ app.get('/api/products/:id', async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
     if (product) {
-      res.json({ ...product.toObject(), id: product._id });
+      res.json({
+        ...product.toObject(),
+        id: product._id.toString(),
+        image: product.images?.[0] || ''
+      });
     } else {
       res.status(404).json({ message: 'Product not found' });
     }
@@ -78,10 +127,56 @@ app.get('/api/products/:id', async (req, res) => {
   }
 });
 
-// --- Categories ---
+// --- Admin AI Description Generator ---
+app.post('/api/admin/generate-description', requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { image } = req.body;
+    if (!image) return res.status(400).json({ message: 'Image URL is required' });
+
+    const apiKey = "AQ.Ab8RN6J4jfsSjNton-MBiq2m6yLOQuQnfujpFCzQ7Qra_Hjo-w";
+    if (!apiKey || apiKey.length < 10) {
+      return res.status(400).json({ message: 'Gemini API key not configured or invalid format. Please set a valid GEMINI_API_KEY starting with AIza in server/.env' });
+    }
+
+    // Fetch image as base64 using native fetch
+    const imageResponse = await fetch(image);
+    if (!imageResponse.ok) {
+      return res.status(400).json({ message: 'Failed to fetch the product image. Make sure image is uploaded first.' });
+    }
+    const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+    const base64Image = imageBuffer.toString('base64');
+    const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+
+    const prompt = "You are an indian fashion copywriter for 'RichGirl', a premium ethnic/western fusion brand. Describe this clothing product for the e-commerce website. Focus on fabric, style, embroidery/print details, and occasion. Make it elegant, premium and appealing. Keep it under 100 words. Return ONLY the description text, no headings or bullet points.";
+
+    const result = await model.generateContent([
+      prompt,
+      {
+        inlineData: {
+          data: base64Image,
+          mimeType: contentType,
+        },
+      },
+    ]);
+    const text = result.response.text();
+
+    res.json({ description: text });
+  } catch (error) {
+    console.error('AI error:', error);
+    const errorMsg = error.errorDetails?.[0]?.message || error.message || 'Unknown AI error';
+    res.status(500).json({ message: `AI generation failed: ${errorMsg}` });
+  }
+});
+
+
+// --- Categories API ---
 app.get('/api/categories', async (req, res) => {
   try {
-    const categories = await Category.find().sort({ displayOrder: 1 });
+    const categories = await Category.find({ isActive: true }).sort({ displayOrder: 1, name: 1 });
     res.json(categories);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -120,13 +215,13 @@ app.get('/api/cart/:userId', requireAuth, async (req, res) => {
 app.post('/api/cart', requireAuth, async (req, res) => {
   try {
     const { userId, productId, name, image, size, color, quantity, price, originalPrice } = req.body;
-    
+
     if (req.user.id.toString() !== userId) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-    
+
     let cart = await Cart.findOne({ userId });
-    
+
     if (!cart) {
       // Create new cart
       cart = new Cart({
@@ -135,10 +230,10 @@ app.post('/api/cart', requireAuth, async (req, res) => {
       });
     } else {
       // Check if item exists (same product, size, and color)
-      const itemIndex = cart.items.findIndex(p => 
+      const itemIndex = cart.items.findIndex(p =>
         p.productId.toString() === productId && p.size === size && p.color === color
       );
-      
+
       if (itemIndex > -1) {
         // Update quantity
         cart.items[itemIndex].quantity += quantity;
@@ -147,7 +242,7 @@ app.post('/api/cart', requireAuth, async (req, res) => {
         cart.items.push({ productId, name, image, size, color, quantity, price, originalPrice });
       }
     }
-    
+
     await cart.save();
     res.status(200).json(cart);
   } catch (error) {
@@ -160,18 +255,18 @@ app.put('/api/cart/:userId/:productId', requireAuth, async (req, res) => {
   try {
     const { userId, productId } = req.params;
     const { quantity, size, color } = req.body;
-    
+
     if (req.user.id.toString() !== userId) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-    
+
     const cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: 'Cart not found' });
-    
-    const itemIndex = cart.items.findIndex(p => 
+
+    const itemIndex = cart.items.findIndex(p =>
       p.productId.toString() === productId && p.size === size && p.color === color
     );
-    
+
     if (itemIndex > -1) {
       cart.items[itemIndex].quantity = quantity;
       await cart.save();
@@ -189,18 +284,18 @@ app.delete('/api/cart/:userId/:productId', requireAuth, async (req, res) => {
   try {
     const { userId, productId } = req.params;
     const { size, color } = req.query; // pass size/color in query to uniquely identify
-    
+
     if (req.user.id.toString() !== userId) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-    
+
     const cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: 'Cart not found' });
-    
-    cart.items = cart.items.filter(p => 
+
+    cart.items = cart.items.filter(p =>
       !(p.productId.toString() === productId && p.size === size && p.color === color)
     );
-    
+
     await cart.save();
     res.json(cart);
   } catch (error) {
@@ -212,11 +307,11 @@ app.delete('/api/cart/:userId/:productId', requireAuth, async (req, res) => {
 app.post('/api/orders', requireAuth, async (req, res) => {
   try {
     const { userId, products, totalAmount, discount, deliveryCharge, shippingAddress, payment } = req.body;
-    
+
     if (req.user.id.toString() !== userId) {
       return res.status(403).json({ message: 'Forbidden' });
     }
-    
+
     const newOrder = new Order({
       orderId: 'RG-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000),
       userId,
@@ -227,12 +322,12 @@ app.post('/api/orders', requireAuth, async (req, res) => {
       shippingAddress,
       payment
     });
-    
+
     await newOrder.save();
-    
+
     // Clear the user's cart
     await Cart.findOneAndUpdate({ userId }, { items: [] });
-    
+
     res.status(201).json(newOrder);
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -243,11 +338,13 @@ app.post('/api/orders', requireAuth, async (req, res) => {
 app.post('/api/users/login', async (req, res) => {
   try {
     const { email, password } = req.body;
+
     const user = await User.findOne({ email });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
 
     // Handle both hashed and plain passwords for legacy users
     let isMatch = false;
@@ -260,6 +357,7 @@ app.post('/api/users/login', async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
 
     // Generate JWT token
     const token = generateToken(user);
@@ -351,7 +449,7 @@ app.post('/api/users/forgot-password', async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) {
       // For security, don't reveal if user doesn't exist
-      return res.json({ message: 'If an account exists with this email, a reset link has been logged to the console.' });
+      return res.json({ message: 'If an account exists with this email, a reset link has been sent.' });
     }
 
     // Generate password reset token (valid 1 hour)
@@ -456,10 +554,11 @@ app.get('/api/config', (req, res) => {
 });
 
 // --- Product Creation (Admin) ---
-app.post('/api/products', async (req, res) => {
+app.post('/api/products', requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
-    const { name, description, category, price, discountPrice, fabric, colors, sizes, image, type } = req.body;
-    
+    const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
+
     // Find or create category
     let categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
     if (!categoryDoc) {
@@ -473,10 +572,33 @@ app.post('/api/products', async (req, res) => {
       await categoryDoc.save();
     }
 
-    const formattedSizes = sizes.map(s => ({
-      size: s,
-      stock: 50 // default stock
-    }));
+    const formattedSizes = sizes.map(s => {
+      // s is { size: 'S', variants: [{ color: 'Pink', stock: 10 }, ...] }
+      return {
+        size: s.size,
+        variants: s.variants.map(v => ({
+          color: v.color,
+          stock: Number(v.stock) || 0
+        }))
+      };
+    });
+
+    // Calculate total stock from variants
+    const totalStock = formattedSizes.reduce((acc, s) => {
+      const sizeStock = s.variants.reduce((sAcc, v) => sAcc + v.stock, 0);
+      return acc + sizeStock;
+    }, 0);
+
+    const inStock = totalStock > 0;
+
+    // Selling price = Original - Discount
+    // Wait, the user said: "THE PRICE SHOULD BE WRITTEN BY USER, THE DISCOUNT PERCENT FIELD SHOULD BE SELECT ONE OPTIONS... BASED ON THISTHE DISCOUNTED RATE SHOULD BE SHOWN ON THE NET PRICE."
+    // So Price = MRP, Discount% = percentage.
+    // Price from frontend will be MRP.
+    const mrp = Number(price);
+    const discountPercent = Number(discount) || 0;
+    const sellingPrice = Math.round(mrp * (1 - discountPercent / 100));
+    const discountAmount = mrp - sellingPrice;
 
     const newProduct = new Product({
       name,
@@ -484,18 +606,23 @@ app.post('/api/products', async (req, res) => {
       category: categoryDoc._id,
       categoryName: categoryDoc.name,
       type: type || 'western',
-      price: Number(price),
-      discountPrice: discountPrice ? Number(discountPrice) : undefined,
-      fabric,
+      price: sellingPrice,
+      originalPrice: mrp,
+      discountPrice: discountAmount,
+      discount: discountPercent,
+      fabric: fabric || 'Cotton',
       images: [image],
       colors: colors || [],
       sizes: formattedSizes,
+      inStock,
+      totalStock,
       isActive: true
     });
 
     await newProduct.save();
     res.status(201).json(newProduct);
   } catch (error) {
+    console.error('Create product error:', error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
@@ -512,7 +639,7 @@ app.put('/api/admin/orders/:id', async (req, res) => {
     if (shippingStatus) order.shippingStatus = shippingStatus;
     if (trackingId) order.trackingId = trackingId;
     if (estimatedDelivery) order.estimatedDelivery = estimatedDelivery;
-    
+
     if (shippingStatus === 'Delivered') {
       order.deliveredAt = new Date();
       order.payment.status = 'paid'; // Automatically paid on delivery
@@ -567,6 +694,17 @@ app.get('/api/orders/track/:orderId', async (req, res) => {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });
+
+// --- Category List ---
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await Category.find().sort({ name: 1 });
+    res.json(categories);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 
 function getStatusDescription(status, trackingId) {
   switch (status) {

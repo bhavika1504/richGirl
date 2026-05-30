@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
-import { 
-  LayoutDashboard, 
-  Package, 
-  ShoppingBag, 
-  Users, 
-  Plus, 
-  Search, 
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingBag,
+  Users,
+  Plus,
+  Search,
   MoreVertical,
   ChevronRight,
   TrendingUp,
@@ -29,20 +29,26 @@ export function AdminDashboard() {
 
   // Add Product Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
     category: '',
-    price: '',
-    discountPrice: '',
+    price: '', // This will be MRP (originalPrice)
+    discount: '0', // Percentage
     fabric: '',
-    colors: '',
-    sizes: ['S', 'M', 'L', 'XL'],
+    sizes: [
+      {
+        size: 'S',
+        variants: [{ color: '', stock: 0 }]
+      }
+    ],
     type: 'western'
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [submittingProduct, setSubmittingProduct] = useState(false);
+  const [generatingAI, setGeneratingAI] = useState(false);
 
   // Update Order Modal states
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
@@ -54,16 +60,18 @@ export function AdminDashboard() {
   const reloadData = async () => {
     setLoading(true);
     try {
-      const [productsData, ordersData, usersData, statsData] = await Promise.all([
+      const [productsData, ordersData, usersData, statsData, catsData] = await Promise.all([
         api.getProducts(),
         api.getAllOrders(),
         api.getAllUsers(),
-        api.getAdminStats()
+        api.getAdminStats(),
+        api.getCategories()
       ]);
       setProducts(productsData);
       setOrders(ordersData);
       setUsers(usersData);
       setDbStats(statsData);
+      setCategories(catsData);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -74,6 +82,43 @@ export function AdminDashboard() {
   useEffect(() => {
     reloadData();
   }, []);
+
+  const handleGenerateAI = async () => {
+    if (!imagePreview) {
+      alert('Please upload an image first');
+      return;
+    }
+    setGeneratingAI(true);
+    try {
+      // We need to upload the image first if it's not already uploaded, 
+      // but the generate-description route expects a URL.
+      // So we'll upload to Cloudinary first.
+      let currentImageUrl = '';
+      if (imageFile) {
+        const config = await api.getConfig();
+        const formData = new FormData();
+        formData.append('file', imageFile);
+        formData.append('upload_preset', config.cloudinaryUploadPreset);
+        const res = await axios.post(
+          `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
+          formData
+        );
+        currentImageUrl = res.data.secure_url;
+      }
+
+      if (currentImageUrl) {
+        const res = await api.generateDescription(currentImageUrl);
+        setNewProduct({ ...newProduct, description: res.description });
+      } else {
+        alert('Upload failed or no image file selected.');
+      }
+    } catch (err) {
+      console.error('AI error:', err);
+      alert('AI generation failed. Make sure your GEMINI_API_KEY is configured in .env');
+    } finally {
+      setGeneratingAI(false);
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -87,39 +132,38 @@ export function AdminDashboard() {
     e.preventDefault();
     setSubmittingProduct(true);
     try {
-      let imageUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600'; // high-quality fallback
+      let imageUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600';
 
       if (imageFile) {
         try {
           const config = await api.getConfig();
-          if (config.cloudinaryCloudName && config.cloudinaryUploadPreset) {
-            const formData = new FormData();
-            formData.append('file', imageFile);
-            formData.append('upload_preset', config.cloudinaryUploadPreset);
-            const res = await axios.post(
-              `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
-              formData
-            );
-            imageUrl = res.data.secure_url;
-          }
+          const formData = new FormData();
+          formData.append('file', imageFile);
+          formData.append('upload_preset', config.cloudinaryUploadPreset);
+          const res = await axios.post(
+            `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
+            formData
+          );
+          imageUrl = res.data.secure_url;
         } catch (uploadErr) {
-          console.error('Cloudinary upload failed, using fallback:', uploadErr);
+          console.error('Cloudinary upload failed:', uploadErr);
         }
       }
-
-      const colorsArray = newProduct.colors
-        ? newProduct.colors.split(',').map((c) => c.trim())
-        : ['Black', 'Off-White'];
 
       await api.createProduct({
         name: newProduct.name,
         description: newProduct.description,
         category: newProduct.category,
-        price: Number(newProduct.price),
-        discountPrice: newProduct.discountPrice ? Number(newProduct.discountPrice) : undefined,
+        price: Number(newProduct.price), // Passing MRP
+        discount: Number(newProduct.discount), // Passing %
         fabric: newProduct.fabric,
-        colors: colorsArray,
-        sizes: newProduct.sizes,
+        sizes: newProduct.sizes.map(s => ({
+          size: s.size,
+          variants: s.variants.map(v => ({
+            color: v.color,
+            stock: Number(v.stock)
+          }))
+        })),
         image: imageUrl,
         type: newProduct.type
       });
@@ -130,20 +174,29 @@ export function AdminDashboard() {
         description: '',
         category: '',
         price: '',
-        discountPrice: '',
+        discount: '0',
         fabric: '',
-        colors: '',
-        sizes: ['S', 'M', 'L', 'XL'],
+        sizes: [
+          { size: 'S', variants: [{ color: '', stock: 0 }] }
+        ],
         type: 'western'
       });
       setImageFile(null);
       setImagePreview('');
       reloadData();
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create product:', err);
+      const msg = err.response?.data?.message || 'Server error';
+      alert(`FAILED TO CREATE PRODUCT: ${msg}. Please check if all required fields are filled and the backend is running.`);
     } finally {
       setSubmittingProduct(false);
     }
+  };
+
+  const calculateNetPrice = () => {
+    const mrp = Number(newProduct.price) || 0;
+    const disc = Number(newProduct.discount) || 0;
+    return Math.round(mrp * (1 - disc / 100));
   };
 
   const openOrderUpdateModal = (order: any) => {
@@ -185,7 +238,7 @@ export function AdminDashboard() {
       <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col sticky top-0 h-screen">
         <div className="p-8">
           <Link to="/" className="flex items-center gap-2">
-             <h1 className="text-xl font-extrabold tracking-tighter" style={{ fontFamily: 'var(--font-headline)' }}>RICH GIRL</h1>
+            <h1 className="text-xl font-extrabold tracking-tighter" style={{ fontFamily: 'var(--font-headline)' }}>RICH GIRL</h1>
           </Link>
         </div>
 
@@ -199,11 +252,10 @@ export function AdminDashboard() {
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${
-                activeTab === item.id 
-                ? 'bg-[var(--brand-cta-green)] text-white shadow-lg shadow-green-100' 
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id
+                ? 'bg-[var(--brand-cta-green)] text-white shadow-lg shadow-green-100'
                 : 'text-gray-500 hover:bg-gray-50'
-              }`}
+                }`}
               style={{ fontFamily: 'var(--font-body)' }}
             >
               <item.icon className="w-5 h-5" />
@@ -213,13 +265,13 @@ export function AdminDashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-100">
-           <button 
-             onClick={() => navigate('/')}
-             className="w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all font-medium"
-           >
-             <ArrowLeft className="w-5 h-5" />
-             Exit Admin
-           </button>
+          <button
+            onClick={() => navigate('/')}
+            className="w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all font-medium"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            Exit Admin
+          </button>
         </div>
       </aside>
 
@@ -232,18 +284,18 @@ export function AdminDashboard() {
             </h2>
             <p className="text-gray-500 text-sm mt-1" style={{ fontFamily: 'var(--font-body)' }}>Manage your store's inventory and orders</p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <div className="relative hidden md:block">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input 
-                type="text" 
-                placeholder="Quick Search..." 
+              <input
+                type="text"
+                placeholder="Quick Search..."
                 className="bg-white border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm outline-none focus:border-[var(--brand-cta-green)] transition-all w-64"
               />
             </div>
             {activeTab === 'products' && (
-              <button 
+              <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="flex items-center gap-2 bg-[var(--brand-dark-text)] text-white px-6 py-2.5 rounded-full font-bold hover:bg-black transition-all shadow-lg active:scale-95 cursor-pointer"
               >
@@ -273,10 +325,10 @@ export function AdminDashboard() {
         {/* Dynamic Table Section */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-             <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
-             <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
-               View All <ChevronRight className="w-4 h-4" />
-             </button>
+            <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
+            <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
+              View All <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
 
           <div className="overflow-x-auto">
@@ -306,8 +358,8 @@ export function AdminDashboard() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.category}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{product.price.toLocaleString()}</td>
+                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
+                      <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -317,9 +369,8 @@ export function AdminDashboard() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                          }`}>
                           {product.inStock ? 'In Stock' : 'Out of Stock'}
                         </span>
                       </td>
@@ -357,14 +408,13 @@ export function AdminDashboard() {
                       <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
+                          }`}>
                           {order.status || 'Processing'}
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        <button 
+                        <button
                           onClick={() => openOrderUpdateModal(order)}
                           className="text-[var(--brand-cta-green)] text-sm font-bold hover:underline cursor-pointer"
                         >
@@ -394,9 +444,8 @@ export function AdminDashboard() {
                       <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
                       <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
                       <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                          user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
-                        }`}>
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
+                          }`}>
                           {user.isAdmin ? 'Admin' : 'Customer'}
                         </span>
                       </td>
@@ -413,22 +462,22 @@ export function AdminDashboard() {
       {isAddModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 p-8 relative">
-            <button 
+            <button
               onClick={() => setIsAddModalOpen(false)}
               className="absolute right-6 top-6 p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
               <X className="w-6 h-6 text-gray-400 hover:text-gray-700" />
             </button>
-            
+
             <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>Add New Product</h3>
-            
+
             <form onSubmit={handleProductSubmit} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Product Name *</label>
-                  <input 
-                    type="text" 
-                    required 
+                  <input
+                    type="text"
+                    required
                     value={newProduct.name}
                     onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
@@ -437,20 +486,34 @@ export function AdminDashboard() {
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Category *</label>
-                  <input 
-                    type="text" 
-                    required 
+                  <select
+                    required
                     value={newProduct.category}
                     onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                    placeholder="e.g. Kurtas, Dresses, Co-ords"
-                  />
+                  >
+                    <option value="">Select Category</option>
+                    {categories.map((cat) => (
+                      <option key={cat._id || cat.slug || cat.name} value={cat.name}>{cat.name}</option>
+                    ))}
+                    <option value="other">Add New / Other...</option>
+                  </select>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Description</label>
-                <textarea 
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-bold text-gray-700">Description</label>
+                  <button
+                    type="button"
+                    disabled={generatingAI || !imagePreview}
+                    onClick={handleGenerateAI}
+                    className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1 disabled:text-gray-400 disabled:no-underline"
+                  >
+                    {generatingAI ? 'GENIAL GENERATING...' : '✨ GENERATE WITH AI'}
+                  </button>
+                </div>
+                <textarea
                   value={newProduct.description}
                   onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
                   rows={3}
@@ -459,12 +522,12 @@ export function AdminDashboard() {
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Price (INR) *</label>
-                  <input 
-                    type="number" 
-                    required 
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Price (MRP) *</label>
+                  <input
+                    type="number"
+                    required
                     value={newProduct.price}
                     onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
@@ -472,18 +535,32 @@ export function AdminDashboard() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Discount Price (INR)</label>
-                  <input 
-                    type="number" 
-                    value={newProduct.discountPrice}
-                    onChange={(e) => setNewProduct({ ...newProduct, discountPrice: e.target.value })}
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Discount %</label>
+                  <select
+                    value={newProduct.discount}
+                    onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                    placeholder="1999"
-                  />
+                  >
+                    <option value="0">0%</option>
+                    <option value="5">5%</option>
+                    <option value="10">10%</option>
+                    <option value="12">12%</option>
+                    <option value="15">15%</option>
+                    <option value="20">20%</option>
+                    <option value="25">25%</option>
+                    <option value="30">30%</option>
+                    <option value="50">50%</option>
+                  </select>
+                </div>
+                <div className="md:col-span-1">
+                  <label className="block text-sm font-bold text-gray-400 mb-2">Net Selling Price</label>
+                  <div className="py-3 px-4 bg-gray-100 rounded-2xl text-sm font-bold text-gray-600">
+                    ₹{calculateNetPrice().toLocaleString()}
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">Type *</label>
-                  <select 
+                  <select
                     value={newProduct.type}
                     onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value })}
                     className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
@@ -494,35 +571,120 @@ export function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Fabric Details</label>
-                  <input 
-                    type="text" 
-                    value={newProduct.fabric}
-                    onChange={(e) => setNewProduct({ ...newProduct, fabric: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                    placeholder="e.g. Pure Cotton, Banarasi Silk"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-2">Colors (Comma separated)</label>
-                  <input 
-                    type="text" 
-                    value={newProduct.colors}
-                    onChange={(e) => setNewProduct({ ...newProduct, colors: e.target.value })}
-                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                    placeholder="e.g. Ruby Red, Mustard, Charcoal"
-                  />
-                </div>
+              {/* Advanced Inventory Configuration */}
+              <div className="mt-6 bg-gray-50 p-6 rounded-3xl border border-gray-100">
+                <label className="block text-sm font-bold text-gray-700 mb-4">Size & Color Inventory Matrix</label>
+                {newProduct.sizes.map((sz, szIdx) => (
+                  <div key={szIdx} className="mb-6 pb-6 border-b border-gray-200 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-4 mb-4">
+                      <input
+                        type="text"
+                        placeholder="Size (e.g. S, M, XL)"
+                        required
+                        value={sz.size}
+                        onChange={(e) => {
+                          const updated = [...newProduct.sizes];
+                          updated[szIdx].size = e.target.value;
+                          setNewProduct({ ...newProduct, sizes: updated });
+                        }}
+                        className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = newProduct.sizes.filter((_, i) => i !== szIdx);
+                          setNewProduct({ ...newProduct, sizes: updated });
+                        }}
+                        className="text-xs text-red-500 hover:underline"
+                      >
+                        Remove Size
+                      </button>
+                    </div>
+
+                    <div className="ml-8 space-y-3">
+                      {sz.variants.map((v, vIdx) => (
+                        <div key={vIdx} className="flex items-center gap-3">
+                          <input
+                            type="text"
+                            placeholder="Color (e.g. Pink)"
+                            required
+                            value={v.color}
+                            onChange={(e) => {
+                              const updated = [...newProduct.sizes];
+                              updated[szIdx].variants[vIdx].color = e.target.value;
+                              setNewProduct({ ...newProduct, sizes: updated });
+                            }}
+                            className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Qty"
+                            required
+                            min="0"
+                            value={v.stock}
+                            onChange={(e) => {
+                              const updated = [...newProduct.sizes];
+                              updated[szIdx].variants[vIdx].stock = Number(e.target.value);
+                              setNewProduct({ ...newProduct, sizes: updated });
+                            }}
+                            className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...newProduct.sizes];
+                              updated[szIdx].variants = updated[szIdx].variants.filter((_, i) => i !== vIdx);
+                              setNewProduct({ ...newProduct, sizes: updated });
+                            }}
+                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = [...newProduct.sizes];
+                          updated[szIdx].variants.push({ color: '', stock: 0 });
+                          setNewProduct({ ...newProduct, sizes: updated });
+                        }}
+                        className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1"
+                      >
+                        <Plus className="w-3 h-3" /> Add Color for {sz.size}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => {
+                    const updated = [...newProduct.sizes, { size: '', variants: [{ color: '', stock: 0 }] }];
+                    setNewProduct({ ...newProduct, sizes: updated });
+                  }}
+                  className="mt-4 flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
+                >
+                  <Plus className="w-4 h-4" /> Add Another Size
+                </button>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Fabric Details</label>
+                <input
+                  type="text"
+                  value={newProduct.fabric}
+                  onChange={(e) => setNewProduct({ ...newProduct, fabric: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                  placeholder="e.g. Pure Cotton, Banarasi Silk"
+                />
               </div>
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Product Image *</label>
                 <div className="border-2 border-dashed border-gray-200 rounded-3xl p-6 flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 transition-all relative">
-                  <input 
-                    type="file" 
-                    accept="image/*" 
+                  <input
+                    type="file"
+                    accept="image/*"
                     required={!imagePreview}
                     onChange={handleImageChange}
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -547,15 +709,15 @@ export function AdminDashboard() {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setIsAddModalOpen(false)}
                   className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all active:scale-[0.98] cursor-pointer"
                 >
                   CANCEL
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={submittingProduct}
                   className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 disabled:bg-gray-400 cursor-pointer"
                 >
@@ -571,20 +733,20 @@ export function AdminDashboard() {
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 p-8 relative">
-            <button 
+            <button
               onClick={() => setSelectedOrder(null)}
               className="absolute right-6 top-6 p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
             >
               <X className="w-6 h-6 text-gray-400 hover:text-gray-700" />
             </button>
-            
+
             <h3 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: 'var(--font-headline)' }}>Update Order Status</h3>
             <p className="text-sm text-gray-400 mb-6" style={{ fontFamily: 'var(--font-body)' }}>Order: {selectedOrder.orderId}</p>
-            
+
             <form onSubmit={handleOrderUpdateSubmit} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Shipping Status</label>
-                <select 
+                <select
                   value={shippingStatus}
                   onChange={(e) => setShippingStatus(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-bold"
@@ -600,8 +762,8 @@ export function AdminDashboard() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Local Courier Tracking ID</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   value={trackingId}
                   onChange={(e) => setTrackingId(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
@@ -612,8 +774,8 @@ export function AdminDashboard() {
 
               <div>
                 <label className="block text-sm font-bold text-gray-700 mb-2">Estimated Delivery Date</label>
-                <input 
-                  type="date" 
+                <input
+                  type="date"
                   value={estimatedDelivery}
                   onChange={(e) => setEstimatedDelivery(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
@@ -621,15 +783,15 @@ export function AdminDashboard() {
               </div>
 
               <div className="flex gap-4 pt-2">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   onClick={() => setSelectedOrder(null)}
                   className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all active:scale-[0.98] cursor-pointer"
                 >
                   CANCEL
                 </button>
-                <button 
-                  type="submit" 
+                <button
+                  type="submit"
                   disabled={updatingOrder}
                   className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 disabled:bg-gray-400 cursor-pointer"
                 >

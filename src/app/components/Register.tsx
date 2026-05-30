@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Link, useNavigate } from 'react-router';
-import { Mail, Lock, ArrowLeft, User, Phone, Loader2 } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, User, Phone, Loader2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Register() {
@@ -13,6 +13,7 @@ export function Register() {
     phone: '',
     password: ''
   });
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -52,13 +53,13 @@ export function Register() {
       >
         <div className="bg-white rounded-[32px] p-8 lg:p-10 shadow-xl shadow-green-900/5 border border-[var(--brand-border)]">
           <div className="text-center mb-8">
-            <h1 
+            <h1
               style={{ fontFamily: 'var(--font-headline)' }}
               className="text-4xl font-bold text-[var(--brand-dark-text)] mb-2"
             >
               Join Us
             </h1>
-            <p 
+            <p
               style={{ fontFamily: 'var(--font-body)' }}
               className="text-gray-500 text-sm"
             >
@@ -87,7 +88,7 @@ export function Register() {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
                   placeholder="John Doe"
                 />
@@ -102,7 +103,7 @@ export function Register() {
                   type="email"
                   required
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
                   placeholder="name@example.com"
                 />
@@ -117,7 +118,7 @@ export function Register() {
                   type="tel"
                   required
                   value={formData.phone}
-                  onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
                   placeholder="+91 98765 43210"
                 />
@@ -129,13 +130,20 @@ export function Register() {
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
                   value={formData.password}
-                  onChange={(e) => setFormData({...formData, password: e.target.value})}
-                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
                   placeholder="••••••••"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
               </div>
             </div>
 

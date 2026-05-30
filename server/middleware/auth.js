@@ -8,7 +8,8 @@ export function requireAuth(req, res, next) {
   if (!token) return res.status(401).json({ message: 'Missing token' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const secret = process.env.JWT_SECRET || 'richgirl_jwt_secret_fallback_key_2024';
+    const decoded = jwt.verify(token, secret);
     // Optionally fetch full user from DB to ensure still exists
     User.findById(decoded.id)
       .then(user => {

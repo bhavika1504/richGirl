@@ -46,20 +46,29 @@ export function Profile() {
           </h1>
         </div>
 
-        {/* Profile Card */}
         <div className="bg-white rounded-[32px] p-6 lg:p-8 border border-[var(--brand-border)] shadow-sm mb-8">
           <div className="flex items-center gap-6">
             <div className="w-20 h-20 lg:w-24 lg:h-24 bg-[var(--brand-mist-green)] rounded-full flex items-center justify-center border-4 border-white shadow-md overflow-hidden">
               <UserIcon className="w-10 h-10 lg:w-12 lg:h-12 text-[var(--brand-cta-green)]" />
             </div>
-            <div>
+            <div className="flex-1">
               <h2 className="text-xl lg:text-2xl font-bold" style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}>
                 Hello, {user?.name || 'Guest User'}
               </h2>
               <p className="text-gray-500 text-sm lg:text-base">{user?.email || 'Not logged in'}</p>
-              <button className="text-xs font-bold text-[var(--brand-cta-green)] mt-2 uppercase tracking-widest hover:underline">
-                Edit Profile
-              </button>
+              <div className="flex gap-4 mt-2">
+                <button className="text-xs font-bold text-[var(--brand-cta-green)] uppercase tracking-widest hover:underline">
+                  Edit Profile
+                </button>
+                {user?.isAdmin && (
+                  <button 
+                    onClick={() => navigate('/admin')}
+                    className="text-xs font-bold text-purple-600 uppercase tracking-widest hover:underline"
+                  >
+                    Admin Dashboard →
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

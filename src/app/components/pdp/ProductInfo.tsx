@@ -5,9 +5,11 @@ import { useState } from 'react';
 
 interface Product {
   id: string;
+  _id?: string;
   category: string;
   name: string;
   rating: number;
+  ratingCount?: number;
   reviewCount: number;
   price: number;
   originalPrice: number;
@@ -15,8 +17,11 @@ interface Product {
   fabric: string;
   length: string;
   occasion: string;
-  colors: { name: string; hex: string }[];
-  sizes: { name: string; available: boolean }[];
+  colors: string[]; // Flat list of colors for display
+  sizes: {
+    size: string;
+    variants: { color: string; stock: number }[]
+  }[];
   images: string[];
 }
 
@@ -50,7 +55,7 @@ export function ProductInfo({
       alert('Please select a size and color');
       return;
     }
-    
+
     setIsAdding(true);
     try {
       await api.addToCart({
@@ -137,7 +142,7 @@ export function ProductInfo({
             color: 'var(--brand-dark-text)'
           }}
         >
-          ₹{product.price.toLocaleString()}
+          ₹{(product.price || 0).toLocaleString()}
         </span>
         <span
           className="line-through"
@@ -147,7 +152,7 @@ export function ProductInfo({
             color: '#888'
           }}
         >
-          ₹{product.originalPrice.toLocaleString()}
+          ₹{(product.originalPrice || product.price || 0).toLocaleString()}
         </span>
         <span
           className="px-2.5 py-1 rounded-full"
@@ -195,32 +200,38 @@ export function ProductInfo({
           </span>
         </div>
         <div className="flex gap-2.5">
-          {product.colors.map((color) => (
-            <motion.button
-              key={color.name}
-              onClick={() => onColorChange(color.name)}
-              className="relative"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              <div
-                className="w-7 h-7 rounded-full"
-                style={{
-                  backgroundColor: color.hex,
-                  border: color.hex === '#FFFFF0' ? '0.5px solid var(--brand-border)' : 'none'
-                }}
-              />
-              {selectedColor === color.name && (
+          {product.colors.map((colorName) => {
+            // Check if this color is available in the selected size
+            const isAvailableForSelectedSize = selectedSize
+              ? product.sizes.find(s => s.size === selectedSize)?.variants.some(v => v.color === colorName && v.stock > 0)
+              : true;
+
+            return (
+              <motion.button
+                key={colorName}
+                onClick={() => onColorChange(colorName)}
+                className="relative disabled:opacity-30"
+                whileHover={isAvailableForSelectedSize ? { scale: 1.1 } : {}}
+                whileTap={isAvailableForSelectedSize ? { scale: 0.95 } : {}}
+              >
                 <div
-                  className="absolute inset-0 rounded-full"
+                  className="w-7 h-7 rounded-full border border-gray-200"
                   style={{
-                    border: '2.5px solid var(--brand-cta-green)',
-                    margin: '-4px'
+                    backgroundColor: colorName.toLowerCase(), // Minimal hex mapping or just name
                   }}
                 />
-              )}
-            </motion.button>
-          ))}
+                {selectedColor === colorName && (
+                  <div
+                    className="absolute inset-0 rounded-full"
+                    style={{
+                      border: '2.5px solid var(--brand-cta-green)',
+                      margin: '-4px'
+                    }}
+                  />
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 
@@ -238,40 +249,47 @@ export function ProductInfo({
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {product.sizes.map((size) => (
-            <motion.button
-              key={size.name}
-              onClick={() => size.available && onSizeChange(size.name)}
-              disabled={!size.available}
-              className="relative"
-              style={{
-                width: '44px',
-                height: '36px',
-                borderRadius: '8px',
-                fontFamily: 'var(--font-body)',
-                fontSize: '13px',
-                backgroundColor: selectedSize === size.name ? 'var(--brand-dark-text)' : 'transparent',
-                color: !size.available ? 'var(--brand-border)' : selectedSize === size.name ? 'white' : 'var(--brand-dark-text)',
-                border: selectedSize === size.name ? 'none' : '0.5px solid var(--brand-border)',
-                cursor: size.available ? 'pointer' : 'not-allowed'
-              }}
-              whileHover={size.available ? { backgroundColor: 'var(--brand-mist-green)' } : {}}
-              whileTap={size.available ? { scale: 0.95 } : {}}
-            >
-              {size.name}
-              {!size.available && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div
-                    className="w-full h-px"
-                    style={{
-                      backgroundColor: 'var(--brand-border)',
-                      transform: 'rotate(-45deg)'
-                    }}
-                  />
-                </div>
-              )}
-            </motion.button>
-          ))}
+          {product.sizes && product.sizes.map((szObj, idx) => {
+            const sizeName = szObj.size;
+            const totalStockForSize = szObj.variants.reduce((acc, v) => acc + v.stock, 0);
+            const isAvailable = totalStockForSize > 0;
+
+            return (
+              <motion.button
+                key={idx}
+                type="button"
+                onClick={() => isAvailable && onSizeChange(sizeName)}
+                disabled={!isAvailable}
+                className="relative"
+                style={{
+                  width: '44px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  fontFamily: 'var(--font-body)',
+                  fontSize: '13px',
+                  backgroundColor: selectedSize === sizeName ? 'var(--brand-dark-text)' : 'transparent',
+                  color: !isAvailable ? 'var(--brand-border)' : selectedSize === sizeName ? 'white' : 'var(--brand-dark-text)',
+                  border: selectedSize === sizeName ? 'none' : '0.5px solid var(--brand-border)',
+                  cursor: isAvailable ? 'pointer' : 'not-allowed'
+                }}
+                whileHover={isAvailable ? { backgroundColor: 'var(--brand-mist-green)' } : {}}
+                whileTap={isAvailable ? { scale: 0.95 } : {}}
+              >
+                {sizeName}
+                {!isAvailable && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div
+                      className="w-full h-px"
+                      style={{
+                        backgroundColor: 'var(--brand-border)',
+                        transform: 'rotate(-45deg)'
+                      }}
+                    />
+                  </div>
+                )}
+              </motion.button>
+            );
+          })}
         </div>
       </div>
 

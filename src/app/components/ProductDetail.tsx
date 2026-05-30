@@ -26,8 +26,8 @@ export function ProductDetail() {
       try {
         const data = await api.getProductById(id);
         setProduct(data);
-        if (data.colors?.length > 0) setSelectedColor(data.colors[0].name);
-        if (data.sizes?.length > 0) setSelectedSize(data.sizes[0].name);
+        if (data.colors?.length > 0) setSelectedColor(data.colors[0].name || data.colors[0]);
+        if (data.sizes?.length > 0) setSelectedSize(data.sizes[0].size || data.sizes[0].name || data.sizes[0]);
       } catch (error) {
         console.error('Error fetching product:', error);
       } finally {
@@ -51,7 +51,7 @@ export function ProductDetail() {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
         <h2 className="text-2xl font-bold mb-4" style={{ fontFamily: 'var(--font-headline)' }}>Product Not Found</h2>
-        <button 
+        <button
           onClick={() => navigate('/shop')}
           className="px-8 py-3 bg-[var(--brand-dark-text)] text-white rounded-full font-medium"
         >
@@ -67,7 +67,7 @@ export function ProductDetail() {
 
       {/* Header with Back Button & Breadcrumb */}
       <div className="px-4 lg:px-20 py-6 lg:py-4 flex items-center gap-4">
-        <button 
+        <button
           onClick={() => navigate(-1)}
           className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm border border-[var(--brand-border)] transition-transform hover:scale-105 active:scale-95 lg:hidden"
         >
@@ -117,7 +117,7 @@ export function ProductDetail() {
       </div>
 
       <MobileNav />
-      <StickyBottomBar price={product.price} />
+      <StickyBottomBar price={product.price || 0} />
     </div>
   );
 }
