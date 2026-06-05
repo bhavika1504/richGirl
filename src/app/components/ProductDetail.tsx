@@ -25,9 +25,31 @@ export function ProductDetail() {
       setLoading(true);
       try {
         const data = await api.getProductById(id);
+
+        // Extract unique color labels if not present in data.colors
+        let availableColors = data.colors || [];
+        if (!availableColors.length && data.sizes?.length) {
+          availableColors = Array.from(new Set(
+            data.sizes.flatMap((s: any) => s.variants?.map((v: any) => v.colorLabel || v.color) || [])
+          )).filter(Boolean);
+          data.colors = availableColors;
+        }
+
         setProduct(data);
-        if (data.colors?.length > 0) setSelectedColor(data.colors[0].name || data.colors[0]);
-        if (data.sizes?.length > 0) setSelectedSize(data.sizes[0].size || data.sizes[0].name || data.sizes[0]);
+
+        // Auto-select first in-stock size and color
+        if (data.sizes?.length > 0) {
+          const firstSize = data.sizes.find((s: any) => s.variants?.some((v: any) => v.stock > 0)) || data.sizes[0];
+          setSelectedSize(firstSize.size || firstSize.name || firstSize);
+
+          if (firstSize.variants?.length > 0) {
+            const firstVariant = firstSize.variants.find((v: any) => v.stock > 0) || firstSize.variants[0];
+            const firstColor = firstVariant.colorLabel || firstVariant.color;
+            if (firstColor) setSelectedColor(firstColor);
+          } else if (availableColors.length > 0) {
+            setSelectedColor(availableColors[0].name || availableColors[0]);
+          }
+        }
       } catch (error) {
         console.error('Error fetching product:', error);
       } finally {
@@ -37,6 +59,24 @@ export function ProductDetail() {
 
     fetchProduct();
   }, [id]);
+
+  // Ensure color is valid when size changes
+  useEffect(() => {
+    if (!product || !selectedSize || !product.sizes) return;
+
+    const currentSizeObj = product.sizes.find((s: any) => (s.size || s.name || s) === selectedSize);
+    if (!currentSizeObj) return;
+
+    const isColorStillAvailable = currentSizeObj.variants?.some(
+      (v: any) => (v.colorLabel || v.color) === selectedColor && v.stock > 0
+    );
+
+    if (!isColorStillAvailable && currentSizeObj.variants?.length > 0) {
+      const firstAvailableVariant = currentSizeObj.variants.find((v: any) => v.stock > 0) || currentSizeObj.variants[0];
+      const newColor = firstAvailableVariant.colorLabel || firstAvailableVariant.color;
+      if (newColor) setSelectedColor(newColor);
+    }
+  }, [selectedSize, product]);
 
   if (loading) {
     return (

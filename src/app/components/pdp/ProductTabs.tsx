@@ -26,7 +26,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
           >
             {tab === 'description' && 'Description'}
             {tab === 'sizeChart' && 'Size Chart'}
-            {tab === 'reviews' && `Reviews (${product.reviewCount})`}
+            {tab === 'reviews' && `Reviews (${product.ratings?.count || 0})`}
 
             {activeTab === tab && (
               <motion.div
@@ -44,29 +44,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
       <div className="max-w-4xl">
         {activeTab === 'description' && (
           <div className="space-y-3" style={{ fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '1.8', color: 'var(--brand-dark-text)' }}>
-            <p>Elevate your ethnic wardrobe with this beautiful floral printed cotton kurti, perfect for both casual and festive occasions.</p>
-            <ul className="space-y-2 pl-5">
-              <li className="flex items-start gap-2">
-                <span style={{ color: 'var(--brand-cta-green)', fontSize: '8px', marginTop: '8px' }}>●</span>
-                Made from 100% pure cotton for maximum comfort
-              </li>
-              <li className="flex items-start gap-2">
-                <span style={{ color: 'var(--brand-cta-green)', fontSize: '8px', marginTop: '8px' }}>●</span>
-                Beautiful floral print with intricate detailing
-              </li>
-              <li className="flex items-start gap-2">
-                <span style={{ color: 'var(--brand-cta-green)', fontSize: '8px', marginTop: '8px' }}>●</span>
-                Regular fit with three-quarter sleeves
-              </li>
-              <li className="flex items-start gap-2">
-                <span style={{ color: 'var(--brand-cta-green)', fontSize: '8px', marginTop: '8px' }}>●</span>
-                Machine washable, easy to care for
-              </li>
-              <li className="flex items-start gap-2">
-                <span style={{ color: 'var(--brand-cta-green)', fontSize: '8px', marginTop: '8px' }}>●</span>
-                Pair with leggings or palazzos for a complete look
-              </li>
-            </ul>
+            <p>{product.description || 'No description available for this product.'}</p>
           </div>
         )}
 
@@ -136,7 +114,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                     color: 'var(--brand-dark-text)'
                   }}
                 >
-                  {product.rating}
+                  {product.ratings?.average || 0}
                 </div>
                 <div className="flex gap-1 mb-2">
                   {[...Array(5)].map((_, i) => (
@@ -144,7 +122,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                       key={i}
                       style={{
                         fontSize: '16px',
-                        color: i < Math.floor(product.rating) ? 'var(--brand-cta-green)' : 'var(--brand-border)'
+                        color: i < Math.floor(product.ratings?.average || 0) ? 'var(--brand-cta-green)' : 'var(--brand-border)'
                       }}
                     >
                       ★
@@ -152,7 +130,7 @@ export function ProductTabs({ product }: ProductTabsProps) {
                   ))}
                 </div>
                 <p style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--brand-secondary-text)' }}>
-                  {product.reviewCount} reviews
+                  {product.ratings?.count || 0} reviews
                 </p>
               </div>
 

@@ -6,12 +6,26 @@ import { api } from '../../services/api';
 interface ProductGridProps {
   category?: string;
   activeFilters: string[];
+  activeSizes: string[];
+  activeColors: string[];
+  activeSubCategories: string[];
+  priceRange: [number, number];
   onRemoveFilter: (filter: string) => void;
   sortBy: string;
   onSortChange: (sort: string) => void;
 }
 
-export function ProductGrid({ category, activeFilters, onRemoveFilter, sortBy, onSortChange }: ProductGridProps) {
+export function ProductGrid({
+  category,
+  activeFilters,
+  activeSizes,
+  activeColors,
+  activeSubCategories,
+  priceRange,
+  onRemoveFilter,
+  sortBy,
+  onSortChange
+}: ProductGridProps) {
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,7 +48,47 @@ export function ProductGrid({ category, activeFilters, onRemoveFilter, sortBy, o
     fetchProducts();
   }, [category]);
 
-  const filteredProducts = products; // Sorting and other filtering can be added here
+  const filteredProducts = products.filter(product => {
+    // 1. Size Filter
+    if (activeSizes.length > 0) {
+      const productSizes = product.sizes?.map((s: any) => s.size) || [];
+      const hasSize = activeSizes.some(size => productSizes.includes(size));
+      if (!hasSize) return false;
+    }
+
+    // 2. Color Filter (assuming color is in variants)
+    if (activeColors.length > 0) {
+      const productColors = product.sizes?.flatMap((s: any) => s.variants?.map((v: any) => v.color)) || [];
+      const hasColor = activeColors.some(color => productColors.includes(color));
+      if (!hasColor) return false;
+    }
+
+    // 3. Price Filter (Net Price after discount)
+    const netPrice = product.price * (1 - (product.discount || 0) / 100);
+    if (netPrice < priceRange[0] || netPrice > priceRange[1]) {
+      return false;
+    }
+
+    // 4. Sub-category (Tag) Filter
+    if (activeSubCategories.length > 0) {
+      const productTags = product.tags || [product.category];
+      const hasSubCat = activeSubCategories.some(subCat => productTags.includes(subCat));
+      if (!hasSubCat) return false;
+    }
+
+    return true;
+  }).sort((a, b) => {
+    // 4. Sorting
+    const priceA = a.price * (1 - (a.discount || 0) / 100);
+    const priceB = b.price * (1 - (b.discount || 0) / 100);
+
+    if (sortBy === 'Price: Low to High') return priceA - priceB;
+    if (sortBy === 'Price: High to Low') return priceB - priceA;
+    if (sortBy === 'Newest First') return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+    return 0;
+  });
+
+  const sortOptions = ['Newest First', 'Price: Low to High', 'Price: High to Low', 'Popularity'];
 
   if (loading) {
     return (
@@ -65,7 +119,7 @@ export function ProductGrid({ category, activeFilters, onRemoveFilter, sortBy, o
       <div className="hidden lg:flex items-center justify-between mb-6">
         {/* Active Filter Chips */}
         <div className="flex items-center gap-2 flex-wrap">
-          {activeFilters.map((filter) => (
+          {[...activeFilters, ...activeSubCategories].map((filter) => (
             <button
               key={filter}
               onClick={() => onRemoveFilter(filter)}

@@ -1,4 +1,6 @@
 import express from 'express';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
@@ -9,7 +11,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '.env') });
+const result = dotenv.config({
+  path: path.join(__dirname, '..', '.env'),
+  override: true
+});
+if (result.error) {
+  console.error('❌ Failed to load .env from:', path.join(__dirname, '..', '.env'), result.error);
+} else {
+  console.log('✅ Loaded .env from:', path.join(__dirname, '..', '.env'));
+  const keyStatus = process.env.GEMINI_API_KEY ? `present (length: ${process.env.GEMINI_API_KEY.trim().length})` : 'MISSING';
+  console.log('GEMINI_API_KEY status:', keyStatus);
+}
 
 import { Product } from './models/Product.js';
 import { Category } from './models/Category.js';
@@ -29,8 +41,15 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
 // Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URI, {
+  dbName: process.env.MONGO_DB_NAME || 'RichGirl_Test'
+})
   .then(async () => {
     console.log('✅ Connected to MongoDB Atlas');
     try {
@@ -53,22 +72,57 @@ mongoose.connect(process.env.MONGO_URI)
         await defaultCart.save();
         console.log('🎉 Default customer customer@example.com seeded successfully.');
       }
-      // Seed Categories
+
+      // Seed Admin User
+      const adminEmail = 'admin@richgirl.com';
+      const existingAdmin = await User.findOne({ email: adminEmail });
+      if (!existingAdmin) {
+        const salt = await bcrypt.genSalt(10);
+        const adminHashedPassword = await bcrypt.hash('adminpassword123', salt);
+        const defaultAdmin = new User({
+          name: 'RichGirl Admin',
+          email: adminEmail,
+          password: adminHashedPassword,
+          phone: '0000000000',
+          isAdmin: true,
+          isVerified: true
+        });
+        await defaultAdmin.save();
+        console.log('👑 Admin user admin@richgirl.com seeded successfully.');
+      }
+      // Seed Categories (synchronized with seedCategories.js)
       const categoriesToSeed = [
-        "3 piece dress", "2 piece dress", "kurtis", "tunics", "tops",
-        "shirts", "jumpsuits", "jeans", "cord sets-western",
-        "cord sets-indian", "wester dresses", "skirts", "tshirts",
-        "shorts", "pants"
+        { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
+        { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
+        { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
+        { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
+        { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
+        { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
+        { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
+        { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
+        { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
+        { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
+        { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
+        { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
+        { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
+        { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
+        { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
       ];
-      for (const catName of categoriesToSeed) {
-        const slug = catName.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      for (const cat of categoriesToSeed) {
+        const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         await Category.findOneAndUpdate(
           { slug },
-          { name: catName, slug, type: 'indian', displayOrder: 10 },
+          {
+            name: cat.name,
+            slug,
+            type: cat.type || 'western',
+            image: cat.image,
+            displayOrder: 10
+          },
           { upsert: true }
         );
       }
-      console.log('✅ Categories seeded successfully');
+      console.log('✅ Categories synchronized successfully');
     } catch (err) {
       console.error('Error seeding data on startup:', err);
     }
@@ -134,9 +188,9 @@ app.post('/api/admin/generate-description', requireAuth, async (req, res) => {
     const { image } = req.body;
     if (!image) return res.status(400).json({ message: 'Image URL is required' });
 
-    const apiKey = "AQ.Ab8RN6J4jfsSjNton-MBiq2m6yLOQuQnfujpFCzQ7Qra_Hjo-w";
+    const apiKey = (process.env.OPEN_ROUTER_KEY || process.env.GEMINI_API_KEY || "").trim();
     if (!apiKey || apiKey.length < 10) {
-      return res.status(400).json({ message: 'Gemini API key not configured or invalid format. Please set a valid GEMINI_API_KEY starting with AIza in server/.env' });
+      return res.status(400).json({ message: 'API key not configured. Please set OPEN_ROUTER_KEY or GEMINI_API_KEY in root/.env' });
     }
 
     // Fetch image as base64 using native fetch
@@ -148,26 +202,102 @@ app.post('/api/admin/generate-description', requireAuth, async (req, res) => {
     const base64Image = imageBuffer.toString('base64');
     const contentType = imageResponse.headers.get('content-type') || 'image/jpeg';
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
+    const cleanKey = apiKey.startsWith('AQ.') && apiKey.includes('sk-or-') ? apiKey.substring(3) : apiKey;
 
-    const prompt = "You are an indian fashion copywriter for 'RichGirl', a premium ethnic/western fusion brand. Describe this clothing product for the e-commerce website. Focus on fabric, style, embroidery/print details, and occasion. Make it elegant, premium and appealing. Keep it under 100 words. Return ONLY the description text, no headings or bullet points.";
+    // Check if it's an OpenRouter key
+    if (cleanKey.startsWith('sk-or-')) {
+      console.log('Using OpenRouter for AI generation...');
 
-    const result = await model.generateContent([
-      prompt,
-      {
-        inlineData: {
-          data: base64Image,
-          mimeType: contentType,
+      const generateWithModel = async (modelName) => {
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${cleanKey}`,
+            "HTTP-Referer": "https://sublimecare.com.au",
+            "X-Title": "PRISM Test",
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            "model": modelName,
+            "messages": [
+              {
+                "role": "user",
+                "content": [
+                  {
+                    "type": "text",
+                    "text": "You are a senior fashion copywriter for a high-end indian brand. Generate a detailed, lush, and storytelling-style e-commerce product description for 'RichGirl'. \n\nYour task:\n1. Describe the garment's visual appeal, fabric texture, and flow.\n2. Detail the specific design elements (neckline, embroidery, print, sleeve style).\n3. Suggest an occasion where this would be the perfect statement piece.\n4. Use evocative, sensory language to make the customer feel the quality.\n\nThe description should be substantial (at least 3-4 professional paragraphs) and approximately 200-250 words. Do NOT provide short summary captions. Return ONLY the description text with specifics highlighted in bullet points."
+                  },
+                  {
+                    "type": "image_url",
+                    "image_url": {
+                      "url": `data:${contentType};base64,${base64Image}`
+                    }
+                  }
+                ]
+              }
+            ],
+            "max_tokens": 1000,
+            "temperature": 0.7
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(`OpenRouter Error (${modelName}): ${data.error?.message || response.statusText}`);
+        }
+        return data.choices[0].message.content;
+      };
+
+      const primaryModel = "google/gemma-4-31b-it:free";
+      const maxRetries = 3;
+      let lastError = null;
+
+      for (let i = 0; i < maxRetries; i++) {
+        try {
+          console.log(`Attempting generation with ${primaryModel} (Attempt ${i + 1}/${maxRetries})...`);
+          const description = await generateWithModel(primaryModel);
+          return res.json({ description });
+        } catch (err) {
+          lastError = err;
+          console.warn(`${primaryModel} failed on attempt ${i + 1}: ${err.message}`);
+          if (i < maxRetries - 1) {
+            console.log(`Retrying in ${Math.pow(2, i)}s...`);
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
+          }
+        }
+      }
+
+      // Final fallback to openrouter/free if primary model fails after retries
+      console.warn('Primary model failed all retries, trying openrouter/free as final fallback...');
+      try {
+        const description = await generateWithModel("openrouter/free");
+        return res.json({ description });
+      } catch (fallbackErr) {
+        console.error(`AI generation failed completely: ${fallbackErr.message}`);
+        return res.status(500).json({ message: 'AI generation failed after multiple retries. Please try again in a few moments.', error: fallbackErr.message });
+      }
+    }
+    else {
+      // Standard Google AI Studio SDK fallback
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = "You are an indian fashion copywriter for 'RichGirl', a premium ethnic/western fusion brand. Describe this clothing product for the e-commerce website. Focus on fabric, style, embroidery/print details, and occasion. Make it elegant, premium and appealing. Keep it under 100 words. Return ONLY the description text, no headings or bullet points.";
+
+      const result = await model.generateContent([
+        prompt,
+        {
+          inlineData: {
+            data: base64Image,
+            mimeType: contentType,
+          },
         },
-      },
-    ]);
-    const text = result.response.text();
-
-    res.json({ description: text });
+      ]);
+      res.json({ description: result.response.text() });
+    }
   } catch (error) {
-    console.error('AI error:', error);
-    const errorMsg = error.errorDetails?.[0]?.message || error.message || 'Unknown AI error';
+    console.error('AI error detailed:', error);
+    const errorMsg = error.message || 'Unknown AI error';
     res.status(500).json({ message: `AI generation failed: ${errorMsg}` });
   }
 });
@@ -303,7 +433,94 @@ app.delete('/api/cart/:userId/:productId', requireAuth, async (req, res) => {
   }
 });
 
+// Merge Guest Cart with User Cart
+app.post('/api/cart/merge', requireAuth, async (req, res) => {
+  try {
+    const { userId, items } = req.body;
+    if (req.user.id.toString() !== userId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      cart = new Cart({ userId, items: [] });
+    }
+
+    // Merge logic: sum quantities for same items, else push new
+    for (const item of items) {
+      const existingIndex = cart.items.findIndex(i =>
+        i.productId.toString() === item.productId &&
+        i.size === item.size &&
+        i.color === item.color
+      );
+      if (existingIndex > -1) {
+        cart.items[existingIndex].quantity += item.quantity;
+      } else {
+        cart.items.push(item);
+      }
+    }
+
+    await cart.save();
+    res.json(cart);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// --- User Addresses ---
+app.get('/api/users/addresses', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    res.json(user.addresses || []);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.post('/api/users/addresses', requireAuth, async (req, res) => {
+  try {
+    const { address } = req.body;
+    const user = await User.findById(req.user.id);
+
+    // If setting as default, clear others
+    if (address.isDefault) {
+      user.addresses.forEach(a => a.isDefault = false);
+    }
+
+    user.addresses.push(address);
+    await user.save();
+    res.json(user.addresses);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+app.delete('/api/users/addresses/:addressId', requireAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+    user.addresses = user.addresses.filter(a => a._id.toString() !== req.params.addressId);
+    await user.save();
+    res.json(user.addresses);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // --- Orders ---
+// Get user's own orders
+app.get('/api/orders/user/:userId', requireAuth, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (req.user.id.toString() !== userId) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    const orders = await Order.find({ userId }).sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 app.post('/api/orders', requireAuth, async (req, res) => {
   try {
     const { userId, products, totalAmount, discount, deliveryCharge, shippingAddress, payment } = req.body;
@@ -498,6 +715,44 @@ app.post('/api/users/reset-password', async (req, res) => {
   }
 });
 
+// --- Payments ---
+app.post('/api/payment/create-order', requireAuth, async (req, res) => {
+  try {
+    const { amount } = req.body; // In INR
+    const options = {
+      amount: amount * 100, // Razorpay works in paise
+      currency: "INR",
+      receipt: `receipt_${Date.now()}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+    res.json(order);
+  } catch (error) {
+    console.error('Razorpay Order Error:', error);
+    res.status(500).json({ message: 'Failed to create Razorpay order', error: error.message });
+  }
+});
+
+app.post('/api/payment/verify', requireAuth, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(body.toString())
+      .digest("hex");
+
+    if (expectedSignature === razorpay_signature) {
+      res.json({ verified: true });
+    } else {
+      res.status(400).json({ verified: false, message: 'Invalid signature' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: 'Verification error', error: error.message });
+  }
+});
+
 
 // --- Admin ---
 app.get('/api/admin/stats', requireAuth, async (req, res) => {
@@ -578,6 +833,7 @@ app.post('/api/products', requireAuth, async (req, res) => {
         size: s.size,
         variants: s.variants.map(v => ({
           color: v.color,
+          colorLabel: v.colorLabel || v.color,
           stock: Number(v.stock) || 0
         }))
       };
@@ -627,8 +883,74 @@ app.post('/api/products', requireAuth, async (req, res) => {
   }
 });
 
+// Update Product (Admin)
+app.put('/api/products/:id', requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    // Handle Category
+    let categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
+    if (!categoryDoc) {
+      const slug = category.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      categoryDoc = new Category({ name: category, slug, type: type || 'western', displayOrder: 10 });
+      await categoryDoc.save();
+    }
+
+    const formattedSizes = sizes.map(s => ({
+      size: s.size,
+      variants: s.variants.map(v => ({
+        color: v.color,
+        colorLabel: v.colorLabel || v.color,
+        stock: Number(v.stock) || 0
+      }))
+    }));
+
+    const totalStock = formattedSizes.reduce((acc, s) => acc + s.variants.reduce((sAcc, v) => sAcc + v.stock, 0), 0);
+    const inStock = totalStock > 0;
+    const mrp = Number(price);
+    const discountPercent = Number(discount) || 0;
+    const sellingPrice = Math.round(mrp * (1 - discountPercent / 100));
+
+    product.name = name;
+    product.description = description;
+    product.category = categoryDoc._id;
+    product.categoryName = categoryDoc.name;
+    product.price = sellingPrice;
+    product.originalPrice = mrp;
+    product.discount = discountPercent;
+    product.discountPrice = mrp - sellingPrice;
+    product.fabric = fabric;
+    product.sizes = formattedSizes;
+    if (image) product.images = [image];
+    product.type = type;
+    product.totalStock = totalStock;
+    product.inStock = inStock;
+
+    await product.save();
+    res.json(product);
+  } catch (error) {
+    console.error('Update product error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Delete Product (Admin)
+app.delete('/api/products/:id', requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  try {
+    await Product.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Product deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
 // --- Admin Order Update ---
-app.put('/api/admin/orders/:id', async (req, res) => {
+app.put('/api/admin/orders/:id', requireAuth, async (req, res) => {
+  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
   try {
     const { shippingStatus, trackingId, estimatedDelivery } = req.body;
     const order = await Order.findById(req.params.id);

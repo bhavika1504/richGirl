@@ -17,18 +17,38 @@ import {
 import { Link, useNavigate } from 'react-router';
 import { api } from '../services/api';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
+
+const STANDARD_COLORS = [
+  'White', 'Black', 'Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Orange', 'Beige', 'Maroon', 'Grey', 'Multi'
+];
 
 export function AdminDashboard() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const STATUS_COLORS: Record<string, string> = {
+    Processing: 'bg-yellow-50 text-yellow-600',
+    Confirmed: 'bg-blue-50 text-blue-600',
+    Shipped: 'bg-indigo-50 text-indigo-600',
+    'Out for Delivery': 'bg-orange-50 text-orange-600',
+    Delivered: 'bg-green-50 text-green-600',
+    Cancelled: 'bg-red-50 text-red-600',
+  };
+
   const [activeTab, setActiveTab] = useState('products');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
   const [dbStats, setDbStats] = useState<any>({ totalProducts: 0, lowStock: 0, activeOrders: 0, totalRevenue: 0 });
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [orderStatusFilter, setOrderStatusFilter] = useState('All');
 
   // Add Product Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -37,10 +57,12 @@ export function AdminDashboard() {
     price: '', // This will be MRP (originalPrice)
     discount: '0', // Percentage
     fabric: '',
+    length: '',
+    occasion: '',
     sizes: [
       {
         size: 'S',
-        variants: [{ color: '', stock: 0 }]
+        variants: [{ color: 'White', colorLabel: 'White', stock: 0 }]
       }
     ],
     type: 'western'
@@ -112,9 +134,10 @@ export function AdminDashboard() {
       } else {
         alert('Upload failed or no image file selected.');
       }
-    } catch (err) {
-      console.error('AI error:', err);
-      alert('AI generation failed. Make sure your GEMINI_API_KEY is configured in .env');
+    } catch (error: any) {
+      console.error('AI generation error:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
+      alert(`AI generation failed: ${errorMsg}`);
     } finally {
       setGeneratingAI(false);
     }
@@ -128,11 +151,53 @@ export function AdminDashboard() {
     }
   };
 
+  const handleOpenAddModal = () => {
+    resetProductForm();
+    setIsAddModalOpen(true);
+  };
+
+  const handleEditProduct = (product: any) => {
+    setIsEditing(true);
+    setEditingProductId(product.id || product._id);
+    setNewProduct({
+      name: product.name,
+      description: product.description || '',
+      category: product.categoryName || product.category,
+      price: (product.originalPrice || product.price).toString(),
+      discount: (product.discount || 0).toString(),
+      fabric: product.fabric || '',
+      length: product.length || '',
+      occasion: product.occasion || '',
+      sizes: product.sizes.map((s: any) => ({
+        size: s.size,
+        variants: s.variants.map((v: any) => ({
+          color: v.color,
+          colorLabel: v.colorLabel || v.color,
+          stock: v.stock
+        }))
+      })),
+      type: product.type || 'western'
+    });
+    setImagePreview(product.image || (product.images?.[0]) || '');
+    setIsAddModalOpen(true);
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+    try {
+      await api.deleteProduct(productId);
+      reloadData();
+    } catch (err) {
+      console.error('Failed to delete product:', err);
+      alert('Failed to delete product');
+    }
+  };
+
   const handleProductSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmittingProduct(true);
     try {
-      let imageUrl = 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=600';
+      let imageUrl = imagePreview;
 
       if (imageFile) {
         try {
@@ -150,47 +215,63 @@ export function AdminDashboard() {
         }
       }
 
-      await api.createProduct({
+      const productData = {
         name: newProduct.name,
         description: newProduct.description,
         category: newProduct.category,
-        price: Number(newProduct.price), // Passing MRP
-        discount: Number(newProduct.discount), // Passing %
+        price: Number(newProduct.price),
+        discount: Number(newProduct.discount),
         fabric: newProduct.fabric,
+        length: newProduct.length,
+        occasion: newProduct.occasion,
         sizes: newProduct.sizes.map(s => ({
           size: s.size,
           variants: s.variants.map(v => ({
             color: v.color,
+            colorLabel: v.colorLabel,
             stock: Number(v.stock)
           }))
         })),
         image: imageUrl,
         type: newProduct.type
-      });
+      };
+
+      if (isEditing && editingProductId) {
+        await api.updateProduct(editingProductId, productData);
+      } else {
+        await api.createProduct(productData);
+      }
 
       setIsAddModalOpen(false);
-      setNewProduct({
-        name: '',
-        description: '',
-        category: '',
-        price: '',
-        discount: '0',
-        fabric: '',
-        sizes: [
-          { size: 'S', variants: [{ color: '', stock: 0 }] }
-        ],
-        type: 'western'
-      });
-      setImageFile(null);
-      setImagePreview('');
+      resetProductForm();
       reloadData();
     } catch (err: any) {
-      console.error('Failed to create product:', err);
-      const msg = err.response?.data?.message || 'Server error';
-      alert(`FAILED TO CREATE PRODUCT: ${msg}. Please check if all required fields are filled and the backend is running.`);
+      console.error('Failed to submit product:', err);
+      alert(`FAILED TO SUBMIT PRODUCT: ${err.response?.data?.message || err.message}`);
     } finally {
       setSubmittingProduct(false);
     }
+  };
+
+  const resetProductForm = () => {
+    setIsEditing(false);
+    setEditingProductId(null);
+    setNewProduct({
+      name: '',
+      description: '',
+      category: '',
+      price: '',
+      discount: '0',
+      fabric: '',
+      length: '',
+      occasion: '',
+      sizes: [
+        { size: 'S', variants: [{ color: 'White', colorLabel: 'White', stock: 0 }] }
+      ],
+      type: 'western'
+    });
+    setImageFile(null);
+    setImagePreview('');
   };
 
   const calculateNetPrice = () => {
@@ -266,8 +347,8 @@ export function AdminDashboard() {
 
         <div className="p-4 border-t border-gray-100">
           <button
-            onClick={() => navigate('/')}
-            className="w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all font-medium"
+            onClick={logout}
+            className="w-full flex items-center gap-3 px-4 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all font-medium border-0 cursor-pointer"
           >
             <ArrowLeft className="w-5 h-5" />
             Exit Admin
@@ -290,14 +371,16 @@ export function AdminDashboard() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
-                placeholder="Quick Search..."
+                placeholder={`Search ${activeTab}...`}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 className="bg-white border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm outline-none focus:border-[var(--brand-cta-green)] transition-all w-64"
               />
             </div>
             {activeTab === 'products' && (
               <button
-                onClick={() => setIsAddModalOpen(true)}
-                className="flex items-center gap-2 bg-[var(--brand-dark-text)] text-white px-6 py-2.5 rounded-full font-bold hover:bg-black transition-all shadow-lg active:scale-95 cursor-pointer"
+                onClick={handleOpenAddModal}
+                className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[var(--brand-cta-green)] text-white px-6 py-3 rounded-2xl font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#10B981]/20 cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 ADD PRODUCT
@@ -324,8 +407,26 @@ export function AdminDashboard() {
 
         {/* Dynamic Table Section */}
         <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+          <div className="p-6 border-b border-gray-50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
+
+            {activeTab === 'orders' && (
+              <div className="flex gap-2">
+                {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
+                  <button
+                    key={status}
+                    onClick={() => setOrderStatusFilter(status)}
+                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${orderStatusFilter === status
+                      ? 'bg-[var(--brand-cta-green)] text-white border-transparent'
+                      : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
+                      }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            )}
+
             <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
               View All <ChevronRight className="w-4 h-4" />
             </button>
@@ -345,42 +446,57 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {products.map((product) => (
-                    <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
-                            <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
+                  {products
+                    .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
+                    .map((product) => (
+                      <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
+                              <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                              <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                            <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                              <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
+                            </div>
+                            <span className="text-xs font-bold text-gray-600">{product.inStock ? 'Yes' : 'No'}</span>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                            <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
+                            }`}>
+                            {product.inStock ? 'In Stock' : 'Out of Stock'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => handleEditProduct(product)}
+                              className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-blue-600"
+                              title="Edit Product"
+                            >
+                              <Package className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(product.id || product._id)}
+                              className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-red-600"
+                              title="Delete Product"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
                           </div>
-                          <span className="text-xs font-bold text-gray-600">{product.inStock ? 'Yes' : 'No'}</span>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                          }`}>
-                          {product.inStock ? 'In Stock' : 'Out of Stock'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all">
-                          <MoreVertical className="w-4 h-4 text-gray-400" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             )}
@@ -398,31 +514,42 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {orders.map((order) => (
-                    <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
-                      <td className="px-6 py-4">
-                        <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
-                        <p className="text-xs text-gray-500">{order.userEmail}</p>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${order.status === 'Delivered' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'
-                          }`}>
-                          {order.status || 'Processing'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={() => openOrderUpdateModal(order)}
-                          className="text-[var(--brand-cta-green)] text-sm font-bold hover:underline cursor-pointer"
-                        >
-                          Update Status
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  {orders
+                    .filter(order => {
+                      const matchesSearch = !searchQuery ||
+                        (order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (order.userName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                        (order.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()));
+
+                      const matchesStatus = orderStatusFilter === 'All' ||
+                        (order.shippingStatus === orderStatusFilter);
+
+                      return matchesSearch && matchesStatus;
+                    })
+                    .map((order) => (
+                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
+                          <p className="text-xs text-gray-500">{order.userEmail}</p>
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
+                            {order.shippingStatus || 'Processing'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <button
+                            onClick={() => openOrderUpdateModal(order)}
+                            className="text-[var(--brand-cta-green)] text-sm font-bold hover:underline cursor-pointer"
+                          >
+                            Update Status
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             )}
@@ -438,19 +565,24 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {users.map((user) => (
-                    <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                      <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
-                          }`}>
-                          {user.isAdmin ? 'Admin' : 'Customer'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {users
+                    .filter(u => !searchQuery ||
+                      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                    )
+                    .map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
+                        <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                            {user.isAdmin ? 'Admin' : 'Customer'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
                 </tbody>
               </table>
             )}
@@ -469,7 +601,9 @@ export function AdminDashboard() {
               <X className="w-6 h-6 text-gray-400 hover:text-gray-700" />
             </button>
 
-            <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>Add New Product</h3>
+            <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>
+              {isEditing ? 'Edit Product' : 'Add New Product'}
+            </h3>
 
             <form onSubmit={handleProductSubmit} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -577,18 +711,39 @@ export function AdminDashboard() {
                 {newProduct.sizes.map((sz, szIdx) => (
                   <div key={szIdx} className="mb-6 pb-6 border-b border-gray-200 last:border-0 last:pb-0">
                     <div className="flex items-center gap-4 mb-4">
-                      <input
-                        type="text"
-                        placeholder="Size (e.g. S, M, XL)"
+                      <select
                         required
-                        value={sz.size}
+                        value={['S', 'M', 'L', 'XL', 'XXL'].includes(sz.size) ? sz.size : (sz.size === '' ? '' : 'Other')}
                         onChange={(e) => {
                           const updated = [...newProduct.sizes];
-                          updated[szIdx].size = e.target.value;
+                          updated[szIdx].size = e.target.value === 'Other' ? 'Custom' : e.target.value;
                           setNewProduct({ ...newProduct, sizes: updated });
                         }}
-                        className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
-                      />
+                        className="w-32 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
+                      >
+                        <option value="">Size</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="Other">Other...</option>
+                      </select>
+
+                      {(!['S', 'M', 'L', 'XL', 'XXL'].includes(sz.size) && sz.size !== '') && (
+                        <input
+                          type="text"
+                          placeholder="e.g. 32, 4XL"
+                          value={sz.size === 'Custom' ? '' : sz.size}
+                          required
+                          onChange={(e) => {
+                            const updated = [...newProduct.sizes];
+                            updated[szIdx].size = e.target.value;
+                            setNewProduct({ ...newProduct, sizes: updated });
+                          }}
+                          className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -604,14 +759,27 @@ export function AdminDashboard() {
                     <div className="ml-8 space-y-3">
                       {sz.variants.map((v, vIdx) => (
                         <div key={vIdx} className="flex items-center gap-3">
-                          <input
-                            type="text"
-                            placeholder="Color (e.g. Pink)"
+                          <select
                             required
-                            value={v.color}
+                            value={v.color || ''}
                             onChange={(e) => {
                               const updated = [...newProduct.sizes];
                               updated[szIdx].variants[vIdx].color = e.target.value;
+                              setNewProduct({ ...newProduct, sizes: updated });
+                            }}
+                            className="w-32 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
+                          >
+                            <option value="">Base Color</option>
+                            {STANDARD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                          <input
+                            type="text"
+                            placeholder="Color Label (e.g. Butter Yellow)"
+                            required
+                            value={v.colorLabel || ''}
+                            onChange={(e) => {
+                              const updated = [...newProduct.sizes];
+                              updated[szIdx].variants[vIdx].colorLabel = e.target.value;
                               setNewProduct({ ...newProduct, sizes: updated });
                             }}
                             className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
@@ -646,7 +814,7 @@ export function AdminDashboard() {
                         type="button"
                         onClick={() => {
                           const updated = [...newProduct.sizes];
-                          updated[szIdx].variants.push({ color: '', stock: 0 });
+                          updated[szIdx].variants.push({ color: 'White', colorLabel: 'White', stock: 0 });
                           setNewProduct({ ...newProduct, sizes: updated });
                         }}
                         className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1"
@@ -659,7 +827,7 @@ export function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => {
-                    const updated = [...newProduct.sizes, { size: '', variants: [{ color: '', stock: 0 }] }];
+                    const updated = [...newProduct.sizes, { size: '', variants: [{ color: 'White', colorLabel: 'White', stock: 0 }] }];
                     setNewProduct({ ...newProduct, sizes: updated });
                   }}
                   className="mt-4 flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-xl text-sm font-bold text-gray-600 hover:bg-gray-50 transition-all shadow-sm"
@@ -668,14 +836,37 @@ export function AdminDashboard() {
                 </button>
               </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Fabric Details</label>
+                  <input
+                    type="text"
+                    value={newProduct.fabric}
+                    onChange={(e) => setNewProduct({ ...newProduct, fabric: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                    placeholder="e.g. Pure Cotton, Banarasi Silk"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Length</label>
+                  <input
+                    type="text"
+                    value={newProduct.length}
+                    onChange={(e) => setNewProduct({ ...newProduct, length: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                    placeholder="e.g. 42 inches, Knee Length"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Fabric Details</label>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Occasion</label>
                 <input
                   type="text"
-                  value={newProduct.fabric}
-                  onChange={(e) => setNewProduct({ ...newProduct, fabric: e.target.value })}
+                  value={newProduct.occasion}
+                  onChange={(e) => setNewProduct({ ...newProduct, occasion: e.target.value })}
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                  placeholder="e.g. Pure Cotton, Banarasi Silk"
+                  placeholder="e.g. Casual, Festive, Wedding"
                 />
               </div>
 

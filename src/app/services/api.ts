@@ -78,6 +78,9 @@ export const api = {
       localStorage.setItem('user', JSON.stringify(response.data.user));
       localStorage.setItem('userId', response.data.user.id || response.data.user._id);
       localStorage.setItem('userName', response.data.user.name);
+
+      // Merge guest cart after login
+      await api.mergeCart();
     }
     return response.data;
   },
@@ -129,20 +132,46 @@ export const api = {
 
   getCart: async () => {
     const token = localStorage.getItem('token');
-    let userId = getCurrentUserId();
-    // If token or userId missing, just return empty cart (no mock login)
+    const userId = getCurrentUserId();
+
     if (!token || !userId) {
-      return [];
+      const guestCart = localStorage.getItem('guestCart');
+      return guestCart ? JSON.parse(guestCart) : [];
     }
-    const response = await axios.get(`${API_BASE_URL}/cart/${userId}`);
-    return response.data.items || [];
+
+    try {
+      const response = await axios.get(`${API_BASE_URL}/cart/${userId}`);
+      return response.data.items || [];
+    } catch (err) {
+      console.error('Failed to get cart:', err);
+      const guestCart = localStorage.getItem('guestCart');
+      return guestCart ? JSON.parse(guestCart) : [];
+    }
   },
 
   addToCart: async (item: any) => {
-    let userId = getCurrentUserId();
-    if (!userId) {
-      userId = await api.setupMockUser();
+    const token = localStorage.getItem('token');
+    const userId = getCurrentUserId();
+
+    if (!token || !userId) {
+      // Guest logic
+      const guestCartJson = localStorage.getItem('guestCart');
+      const guestCart = guestCartJson ? JSON.parse(guestCartJson) : [];
+
+      const existingIndex = guestCart.findIndex((i: any) =>
+        i.productId === item.productId && i.size === item.size && i.color === item.color
+      );
+
+      if (existingIndex > -1) {
+        guestCart[existingIndex].quantity += item.quantity;
+      } else {
+        guestCart.push({ ...item, id: item.productId }); // Map id for UI consistency
+      }
+
+      localStorage.setItem('guestCart', JSON.stringify(guestCart));
+      return { items: guestCart };
     }
+
     const response = await axios.post(`${API_BASE_URL}/cart`, {
       userId,
       ...item
@@ -151,8 +180,25 @@ export const api = {
   },
 
   updateCartQuantity: async (productId: string, size: string, color: string, quantity: number) => {
+    const token = localStorage.getItem('token');
     const userId = getCurrentUserId();
-    if (!userId) return;
+
+    if (!token || !userId) {
+      const guestCartJson = localStorage.getItem('guestCart');
+      if (!guestCartJson) return;
+      const guestCart = JSON.parse(guestCartJson);
+
+      const idx = guestCart.findIndex((i: any) =>
+        i.productId === productId && i.size === size && i.color === color
+      );
+
+      if (idx > -1) {
+        guestCart[idx].quantity = quantity;
+        localStorage.setItem('guestCart', JSON.stringify(guestCart));
+      }
+      return { items: guestCart };
+    }
+
     const response = await axios.put(`${API_BASE_URL}/cart/${userId}/${productId}`, {
       quantity,
       size,
@@ -162,12 +208,47 @@ export const api = {
   },
 
   removeFromCart: async (productId: string, size: string, color: string) => {
+    const token = localStorage.getItem('token');
     const userId = getCurrentUserId();
-    if (!userId) return;
+
+    if (!token || !userId) {
+      const guestCartJson = localStorage.getItem('guestCart');
+      if (!guestCartJson) return;
+      const guestCart = JSON.parse(guestCartJson);
+
+      const filtered = guestCart.filter((i: any) =>
+        !(i.productId === productId && i.size === size && i.color === color)
+      );
+
+      localStorage.setItem('guestCart', JSON.stringify(filtered));
+      return { items: filtered };
+    }
+
     const response = await axios.delete(`${API_BASE_URL}/cart/${userId}/${productId}`, {
       params: { size, color }
     });
     return response.data;
+  },
+
+  mergeCart: async () => {
+    const token = localStorage.getItem('token');
+    const userId = getCurrentUserId();
+    const guestCartJson = localStorage.getItem('guestCart');
+
+    if (!token || !userId || !guestCartJson) return;
+
+    try {
+      const guestCart = JSON.parse(guestCartJson);
+      if (guestCart.length === 0) return;
+
+      await axios.post(`${API_BASE_URL}/cart/merge`, {
+        userId,
+        items: guestCart
+      });
+      localStorage.removeItem('guestCart');
+    } catch (err) {
+      console.error('Failed to merge cart:', err);
+    }
   },
 
   placeOrder: async (orderData: any) => {
@@ -208,6 +289,18 @@ export const api = {
     return response.data;
   },
 
+  updateProduct: async (productId: string, productData: any) => {
+    await ensureAuth();
+    const response = await axios.put(`${API_BASE_URL}/products/${productId}`, productData);
+    return response.data;
+  },
+
+  deleteProduct: async (productId: string) => {
+    await ensureAuth();
+    const response = await axios.delete(`${API_BASE_URL}/products/${productId}`);
+    return response.data;
+  },
+
   updateAdminOrder: async (orderId: string, orderData: any) => {
     const response = await axios.put(`${API_BASE_URL}/admin/orders/${orderId}`, orderData);
     return response.data;
@@ -220,6 +313,33 @@ export const api = {
 
   generateDescription: async (imageUrl: string) => {
     const response = await axios.post(`${API_BASE_URL}/admin/generate-description`, { image: imageUrl });
+    return response.data;
+  },
+
+  // --- Addresses ---
+  getAddresses: async () => {
+    const response = await axios.get(`${API_BASE_URL}/users/addresses`);
+    return response.data;
+  },
+
+  addAddress: async (address: any) => {
+    const response = await axios.post(`${API_BASE_URL}/users/addresses`, { address });
+    return response.data;
+  },
+
+  deleteAddress: async (addressId: string) => {
+    const response = await axios.delete(`${API_BASE_URL}/users/addresses/${addressId}`);
+    return response.data;
+  },
+
+  // --- Payment ---
+  createRazorpayOrder: async (amount: number) => {
+    const response = await axios.post(`${API_BASE_URL}/payment/create-order`, { amount });
+    return response.data;
+  },
+
+  verifyRazorpayPayment: async (paymentData: any) => {
+    const response = await axios.post(`${API_BASE_URL}/payment/verify`, paymentData);
     return response.data;
   }
 };

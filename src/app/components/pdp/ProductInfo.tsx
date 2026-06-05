@@ -7,10 +7,13 @@ interface Product {
   id: string;
   _id?: string;
   category: string;
+  categoryName?: string;
   name: string;
-  rating: number;
-  ratingCount?: number;
-  reviewCount: number;
+  ratings?: {
+    average: number;
+    count: number;
+  };
+  reviewCount?: number;
   price: number;
   originalPrice: number;
   discount: number;
@@ -20,7 +23,7 @@ interface Product {
   colors: string[]; // Flat list of colors for display
   sizes: {
     size: string;
-    variants: { color: string; stock: number }[]
+    variants: { color: string; colorLabel?: string; stock: number }[]
   }[];
   images: string[];
 }
@@ -49,6 +52,7 @@ export function ProductInfo({
 }: ProductInfoProps) {
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleAddToCart = async () => {
     if (!selectedSize || !selectedColor) {
@@ -68,7 +72,12 @@ export function ProductInfo({
         price: product.price,
         originalPrice: product.originalPrice
       });
-      navigate('/cart');
+
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 2000);
+
+      // We don't navigate anymore as per user request
+      // navigate('/cart');
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Failed to add to cart');
@@ -89,7 +98,7 @@ export function ProductInfo({
           letterSpacing: '0.1em'
         }}
       >
-        {product.category}
+        {product.categoryName || product.category}
       </Link>
 
       {/* Product Name */}
@@ -113,7 +122,7 @@ export function ProductInfo({
               key={i}
               style={{
                 fontSize: '16px',
-                color: i < Math.floor(product.rating) ? 'var(--brand-cta-green)' : 'var(--brand-border)'
+                color: i < Math.floor(product.ratings?.average || 0) ? 'var(--brand-cta-green)' : 'var(--brand-border)'
               }}
             >
               ★
@@ -121,14 +130,14 @@ export function ProductInfo({
           ))}
         </div>
         <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500', color: 'var(--brand-dark-text)' }}>
-          {product.rating}
+          {product.ratings?.average || 0}
         </span>
         <a
           href="#reviews"
           className="hover:underline"
           style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-secondary-text)' }}
         >
-          ({product.reviewCount} reviews)
+          ({product.ratings?.count || 0} reviews)
         </a>
       </div>
 
@@ -190,50 +199,63 @@ export function ProductInfo({
       <div className="my-5" style={{ borderBottom: '0.5px solid var(--brand-border)' }} />
 
       {/* Color Selector */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between mb-3">
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-secondary-text)' }}>
-            Color
-          </span>
-          <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-dark-text)' }}>
-            {selectedColor}
-          </span>
-        </div>
-        <div className="flex gap-2.5">
-          {product.colors.map((colorName) => {
-            // Check if this color is available in the selected size
-            const isAvailableForSelectedSize = selectedSize
-              ? product.sizes.find(s => s.size === selectedSize)?.variants.some(v => v.color === colorName && v.stock > 0)
-              : true;
+      {product.sizes && product.sizes.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-3">
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-secondary-text)' }}>
+              Color
+            </span>
+            <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-dark-text)', fontWeight: '600' }}>
+              {selectedColor || 'Please select'}
+            </span>
+          </div>
+          <div className="flex gap-2.5">
+            {(() => {
+              const currentSizeObj = product.sizes.find(s => s.size === selectedSize);
+              const availableColorsForSize = Array.from(new Set(
+                currentSizeObj?.variants.map(v => v.colorLabel || v.color) || []
+              )).filter(Boolean);
 
-            return (
-              <motion.button
-                key={colorName}
-                onClick={() => onColorChange(colorName)}
-                className="relative disabled:opacity-30"
-                whileHover={isAvailableForSelectedSize ? { scale: 1.1 } : {}}
-                whileTap={isAvailableForSelectedSize ? { scale: 0.95 } : {}}
-              >
-                <div
-                  className="w-7 h-7 rounded-full border border-gray-200"
-                  style={{
-                    backgroundColor: colorName.toLowerCase(), // Minimal hex mapping or just name
-                  }}
-                />
-                {selectedColor === colorName && (
-                  <div
-                    className="absolute inset-0 rounded-full"
+              return availableColorsForSize.map((colorNameOrLabel: any) => {
+                // Find the base color for this label in the selected size variants
+                const variant = currentSizeObj?.variants.find(v => (v.colorLabel || v.color) === colorNameOrLabel);
+                const baseColor = variant?.color || colorNameOrLabel;
+                const isAvailable = variant ? variant.stock > 0 : false;
+
+                return (
+                  <motion.button
+                    key={colorNameOrLabel}
+                    onClick={() => isAvailable && onColorChange(colorNameOrLabel)}
+                    disabled={!isAvailable}
+                    className="relative p-1 rounded-full border-2 transition-all"
                     style={{
-                      border: '2.5px solid var(--brand-cta-green)',
-                      margin: '-4px'
+                      borderColor: selectedColor === colorNameOrLabel ? 'var(--brand-cta-green)' : 'transparent',
+                      opacity: isAvailable ? 1 : 0.3,
+                      cursor: isAvailable ? 'pointer' : 'not-allowed'
                     }}
-                  />
-                )}
-              </motion.button>
-            );
-          })}
+                    whileHover={isAvailable ? { scale: 1.1 } : {}}
+                    whileTap={isAvailable ? { scale: 0.95 } : {}}
+                    title={colorNameOrLabel}
+                  >
+                    <div
+                      className="w-7 h-7 rounded-full border border-gray-100"
+                      style={{
+                        backgroundColor: baseColor.toLowerCase(),
+                        backgroundImage: baseColor.toLowerCase() === 'multi' ? 'linear-gradient(to right, red, orange, yellow, green, blue, indigo, violet)' : 'none'
+                      }}
+                    />
+                    {!isAvailable && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-full h-[1px] bg-red-400 rotate-45 opacity-60" />
+                      </div>
+                    )}
+                  </motion.button>
+                );
+              });
+            })()}
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Size Selector */}
       <div className="mb-6">
@@ -253,6 +275,7 @@ export function ProductInfo({
             const sizeName = szObj.size;
             const totalStockForSize = szObj.variants.reduce((acc, v) => acc + v.stock, 0);
             const isAvailable = totalStockForSize > 0;
+            const isSelected = selectedSize === sizeName;
 
             return (
               <motion.button
@@ -260,22 +283,29 @@ export function ProductInfo({
                 type="button"
                 onClick={() => isAvailable && onSizeChange(sizeName)}
                 disabled={!isAvailable}
-                className="relative"
+                className="relative group"
                 style={{
-                  width: '44px',
-                  height: '36px',
-                  borderRadius: '8px',
+                  width: '48px',
+                  height: '40px',
+                  borderRadius: '10px',
                   fontFamily: 'var(--font-body)',
                   fontSize: '13px',
-                  backgroundColor: selectedSize === sizeName ? 'var(--brand-dark-text)' : 'transparent',
-                  color: !isAvailable ? 'var(--brand-border)' : selectedSize === sizeName ? 'white' : 'var(--brand-dark-text)',
-                  border: selectedSize === sizeName ? 'none' : '0.5px solid var(--brand-border)',
-                  cursor: isAvailable ? 'pointer' : 'not-allowed'
+                  fontWeight: isSelected ? '700' : '400',
+                  backgroundColor: isSelected ? 'var(--brand-dark-text)' : 'transparent',
+                  color: !isAvailable ? 'var(--brand-border)' : isSelected ? 'white' : 'var(--brand-dark-text)',
+                  border: isSelected ? 'none' : '1px solid var(--brand-border)',
+                  cursor: isAvailable ? 'pointer' : 'not-allowed',
+                  boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
                 }}
-                whileHover={isAvailable ? { backgroundColor: 'var(--brand-mist-green)' } : {}}
+                whileHover={isAvailable ? { y: -2, borderColor: 'var(--brand-cta-green)' } : {}}
                 whileTap={isAvailable ? { scale: 0.95 } : {}}
               >
                 {sizeName}
+                {isSelected && (
+                  <div
+                    className="absolute -top-1 -right-1 w-3 h-3 bg-[var(--brand-cta-green)] rounded-full border-2 border-white"
+                  />
+                )}
                 {!isAvailable && (
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div
@@ -337,21 +367,25 @@ export function ProductInfo({
         <div className="flex gap-3">
           <motion.button
             onClick={handleAddToCart}
-            disabled={isAdding}
-            className="flex-1 h-12 lg:h-[50px] rounded-full text-white flex items-center justify-center"
+            disabled={isAdding || showSuccess}
+            className="flex-1 h-12 lg:h-[50px] rounded-full text-white flex items-center justify-center gap-2"
             style={{
-              backgroundColor: 'var(--brand-cta-green)',
+              backgroundColor: showSuccess ? '#3D9E32' : 'var(--brand-cta-green)',
               fontFamily: 'var(--font-body)',
               fontSize: '13px',
               letterSpacing: '0.1em',
               fontWeight: '500',
-              cursor: isAdding ? 'wait' : 'pointer',
+              cursor: (isAdding || showSuccess) ? 'wait' : 'pointer',
               opacity: isAdding ? 0.7 : 1
             }}
-            whileHover={{ backgroundColor: '#3D9E32', scale: 1.01 }}
-            whileTap={{ scale: 0.96 }}
+            whileHover={!(isAdding || showSuccess) ? { backgroundColor: '#3D9E32', scale: 1.01 } : {}}
+            whileTap={!(isAdding || showSuccess) ? { scale: 0.96 } : {}}
           >
-            {isAdding ? 'ADDING...' : 'ADD TO CART'}
+            {isAdding ? 'ADDING...' : showSuccess ? (
+              <>
+                ADDED! <RefreshCw className="w-4 h-4 animate-spin-slow" />
+              </>
+            ) : 'ADD TO CART'}
           </motion.button>
           <motion.button
             className="flex-1 h-12 lg:h-[50px] rounded-full bg-white flex items-center justify-center gap-2"

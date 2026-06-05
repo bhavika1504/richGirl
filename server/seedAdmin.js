@@ -8,7 +8,7 @@ import { User } from './models/User.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const seedAdmin = async () => {
   try {
@@ -42,7 +42,7 @@ const seedAdmin = async () => {
     console.log('Email: admin@richgirl.com');
     console.log('Password: RGirl_ad1990!');
     console.log('-----------------------------------');
-    
+
     process.exit(0);
   } catch (error) {
     console.error('❌ Error creating admin user:', error);

@@ -5,21 +5,51 @@ import { ChevronDown } from 'lucide-react';
 interface FilterBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
+  category?: string;
+  activeSizes: string[];
+  activeColors: string[];
+  activeSubCategories: string[];
+  priceRange: [number, number];
   onClearAll: () => void;
+  onToggleSize: (size: string) => void;
+  onToggleColor: (color: string) => void;
+  onToggleSubCategory: (subCat: string) => void;
+  onPriceChange: (range: [number, number]) => void;
 }
 
-export function FilterBottomSheet({ isOpen, onClose, onClearAll }: FilterBottomSheetProps) {
+export function FilterBottomSheet({
+  isOpen,
+  onClose,
+  category,
+  activeSizes,
+  activeColors,
+  activeSubCategories,
+  priceRange,
+  onClearAll,
+  onToggleSize,
+  onToggleColor,
+  onToggleSubCategory,
+  onPriceChange
+}: FilterBottomSheetProps) {
   const [expandedGroup, setExpandedGroup] = useState<string | null>('category');
 
-  const categories = [
-    { name: '3-Piece Suit', count: 12 },
-    { name: 'Kurtis', count: 8, selected: true },
-    { name: 'Short Kurta', count: 6 },
-    { name: '2-Piece Kurti Set', count: 5 },
+  const indianSubCategories = [
+    { name: 'Saree', count: 12 },
+    { name: 'Kurta', count: 8 },
+    { name: 'Salwar Kameez', count: 6 },
+    { name: 'Lehengas', count: 5 },
+    { name: 'Palazzos', count: 4 },
   ];
 
+  const westernSubCategories = [
+    { name: 'Dresses', count: 15 },
+    { name: 'Tops', count: 10 },
+    { name: 'Skirts', count: 8 },
+    { name: 'Jeans', count: 7 },
+  ];
+
+  const currentSubCategories = category === 'western' ? westernSubCategories : indianSubCategories;
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
-  const [selectedSizes, setSelectedSizes] = useState(['M']);
 
   const colors = [
     { name: 'Black', hex: '#000000' },
@@ -110,19 +140,21 @@ export function FilterBottomSheet({ isOpen, onClose, onClearAll }: FilterBottomS
                 </button>
                 {expandedGroup === 'category' && (
                   <div className="pt-3 space-y-2">
-                    {categories.map((cat) => (
-                      <label key={cat.name} className="flex items-center justify-between py-2">
+                    {currentSubCategories.map((cat) => (
+                      <label key={cat.name} className="flex items-center justify-between py-2 cursor-pointer">
                         <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            defaultChecked={cat.selected}
+                            checked={activeSubCategories.includes(cat.name)}
+                            onChange={() => onToggleSubCategory(cat.name)}
                             className="w-4 h-4 rounded accent-[var(--brand-cta-green)]"
                           />
                           <span
                             style={{
                               fontFamily: 'var(--font-body)',
                               fontSize: '13px',
-                              color: 'var(--brand-dark-text)'
+                              color: activeSubCategories.includes(cat.name) ? 'var(--brand-cta-green)' : 'var(--brand-dark-text)',
+                              fontWeight: activeSubCategories.includes(cat.name) ? '600' : '400'
                             }}
                           >
                             {cat.name}
@@ -170,18 +202,14 @@ export function FilterBottomSheet({ isOpen, onClose, onClearAll }: FilterBottomS
                     {sizes.map((size) => (
                       <button
                         key={size}
-                        onClick={() => {
-                          setSelectedSizes(prev =>
-                            prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-                          );
-                        }}
-                        className="px-4 py-2 rounded-md"
+                        onClick={() => onToggleSize(size)}
+                        className="px-4 py-2 rounded-md transition-all"
                         style={{
                           fontFamily: 'var(--font-body)',
                           fontSize: '12px',
-                          backgroundColor: selectedSizes.includes(size) ? 'var(--brand-cta-green)' : 'var(--brand-white)',
-                          color: selectedSizes.includes(size) ? 'var(--brand-white)' : 'var(--brand-dark-text)',
-                          border: selectedSizes.includes(size) ? 'none' : '0.5px solid var(--brand-border)'
+                          backgroundColor: activeSizes.includes(size) ? 'var(--brand-cta-green)' : 'var(--brand-white)',
+                          color: activeSizes.includes(size) ? 'var(--brand-white)' : 'var(--brand-dark-text)',
+                          border: activeSizes.includes(size) ? 'none' : '0.5px solid var(--brand-border)'
                         }}
                       >
                         {size}
@@ -218,6 +246,7 @@ export function FilterBottomSheet({ isOpen, onClose, onClearAll }: FilterBottomS
                     {colors.map((color) => (
                       <button
                         key={color.name}
+                        onClick={() => onToggleColor(color.name)}
                         className="relative"
                         style={{ width: '32px', height: '32px' }}
                       >
@@ -228,8 +257,68 @@ export function FilterBottomSheet({ isOpen, onClose, onClearAll }: FilterBottomS
                             border: color.hex === '#FFFFFF' ? '0.5px solid var(--brand-border)' : 'none'
                           }}
                         />
+                        {activeColors.includes(color.name) && (
+                          <div
+                            className="absolute inset-0 rounded-full"
+                            style={{
+                              border: '2px solid var(--brand-cta-green)',
+                              margin: '-4px'
+                            }}
+                          />
+                        )}
                       </button>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Price Range */}
+              <div>
+                <button
+                  onClick={() => setExpandedGroup(expandedGroup === 'price' ? null : 'price')}
+                  className="flex items-center justify-between w-full py-3"
+                  style={{ borderBottom: '0.5px solid var(--brand-border)' }}
+                >
+                  <span
+                    className="uppercase tracking-wider"
+                    style={{
+                      fontFamily: 'var(--font-body)',
+                      fontSize: '11px',
+                      color: 'var(--brand-secondary-text)'
+                    }}
+                  >
+                    Price Range
+                  </span>
+                  <ChevronDown
+                    className={`w-4 h-4 transition-transform ${expandedGroup === 'price' ? 'rotate-180' : ''}`}
+                    style={{ color: 'var(--brand-dark-text)' }}
+                  />
+                </button>
+                {expandedGroup === 'price' && (
+                  <div className="pt-3 space-y-4">
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1">Min (₹)</label>
+                        <input
+                          type="number"
+                          value={priceRange[0]}
+                          onChange={(e) => onPriceChange([parseInt(e.target.value) || 0, priceRange[1]])}
+                          className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[10px] uppercase text-gray-400 font-bold mb-1">Max (₹)</label>
+                        <input
+                          type="number"
+                          value={priceRange[1]}
+                          onChange={(e) => onPriceChange([priceRange[0], parseInt(e.target.value) || 0])}
+                          className="w-full h-10 px-3 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-center text-xs font-bold text-[var(--brand-cta-green)]">
+                      ₹{priceRange[0].toLocaleString()} — ₹{priceRange[1].toLocaleString()}
+                    </p>
                   </div>
                 )}
               </div>

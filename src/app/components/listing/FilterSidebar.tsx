@@ -1,23 +1,54 @@
 import { useState } from 'react';
 
 interface FilterSidebarProps {
+  category?: string;
   activeFilters: string[];
+  activeSizes: string[];
+  activeColors: string[];
+  activeSubCategories: string[];
+  priceRange: [number, number];
   onClearAll: () => void;
   onRemoveFilter: (filter: string) => void;
+  onToggleSize: (size: string) => void;
+  onToggleColor: (color: string) => void;
+  onToggleSubCategory: (subCat: string) => void;
+  onPriceChange: (range: [number, number]) => void;
 }
 
-export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: FilterSidebarProps) {
-  const [selectedSizes, setSelectedSizes] = useState(['M']);
-  const [selectedColors, setSelectedColors] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState([499, 4999]);
+export function FilterSidebar({
+  category,
+  activeFilters,
+  activeSizes,
+  activeColors,
+  activeSubCategories,
+  priceRange,
+  onClearAll,
+  onRemoveFilter,
+  onToggleSize,
+  onToggleColor,
+  onToggleSubCategory,
+  onPriceChange
+}: FilterSidebarProps) {
 
-  const categories = [
-    { name: '3-Piece Suit', count: 12 },
-    { name: 'Kurtis', count: 8, selected: true },
-    { name: 'Short Kurta', count: 6 },
-    { name: '2-Piece Kurti Set', count: 5 },
-    { name: 'Co-ord Sets', count: 4 },
+  const indianSubCategories = [
+    { name: 'Saree', count: 12 },
+    { name: 'Kurta', count: 8 },
+    { name: 'Salwar Kameez', count: 6 },
+    { name: 'Lehengas', count: 5 },
+    { name: 'Palazzos', count: 4 },
+    { name: 'Dupatta', count: 3 },
   ];
+
+  const westernSubCategories = [
+    { name: 'Dresses', count: 15 },
+    { name: 'Tops', count: 10 },
+    { name: 'Skirts', count: 8 },
+    { name: 'Jeans', count: 7 },
+    { name: 'Jackets', count: 5 },
+    { name: 'Trousers', count: 4 },
+  ];
+
+  const currentSubCategories = category === 'western' ? westernSubCategories : indianSubCategories;
 
   const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
@@ -63,18 +94,26 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
           Category
         </h4>
         <div className="space-y-1">
-          {categories.map((cat) => (
+          {currentSubCategories.map((cat) => (
             <label
               key={cat.name}
-              className="flex items-center justify-between h-8 px-2 rounded cursor-pointer hover:bg-[var(--brand-alt-bg)]"
+              className="flex items-center justify-between h-8 px-2 rounded cursor-pointer hover:bg-[var(--brand-alt-bg)] transition-colors"
             >
               <div className="flex items-center gap-2">
                 <input
                   type="checkbox"
-                  defaultChecked={cat.selected}
+                  checked={activeSubCategories.includes(cat.name)}
+                  onChange={() => onToggleSubCategory(cat.name)}
                   className="w-4 h-4 rounded accent-[var(--brand-cta-green)]"
                 />
-                <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', color: 'var(--brand-dark-text)' }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--font-body)',
+                    fontSize: '13px',
+                    color: activeSubCategories.includes(cat.name) ? 'var(--brand-cta-green)' : 'var(--brand-dark-text)',
+                    fontWeight: activeSubCategories.includes(cat.name) ? '600' : '400'
+                  }}
+                >
                   {cat.name}
                 </span>
               </div>
@@ -98,18 +137,14 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
           {sizes.map((size) => (
             <button
               key={size}
-              onClick={() => {
-                setSelectedSizes(prev =>
-                  prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]
-                );
-              }}
+              onClick={() => onToggleSize(size)}
               className="px-3 py-1 rounded-md transition-all"
               style={{
                 fontFamily: 'var(--font-body)',
                 fontSize: '11px',
-                backgroundColor: selectedSizes.includes(size) ? 'var(--brand-cta-green)' : 'var(--brand-white)',
-                color: selectedSizes.includes(size) ? 'var(--brand-white)' : 'var(--brand-dark-text)',
-                border: selectedSizes.includes(size) ? 'none' : '0.5px solid var(--brand-border)'
+                backgroundColor: activeSizes.includes(size) ? 'var(--brand-cta-green)' : 'var(--brand-white)',
+                color: activeSizes.includes(size) ? 'var(--brand-white)' : 'var(--brand-dark-text)',
+                border: activeSizes.includes(size) ? 'none' : '0.5px solid var(--brand-border)'
               }}
             >
               {size}
@@ -129,11 +164,7 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
           {colors.map((color) => (
             <button
               key={color.name}
-              onClick={() => {
-                setSelectedColors(prev =>
-                  prev.includes(color.name) ? prev.filter(c => c !== color.name) : [...prev, color.name]
-                );
-              }}
+              onClick={() => onToggleColor(color.name)}
               className="relative"
               style={{ width: '24px', height: '24px' }}
             >
@@ -144,7 +175,7 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
                   border: color.hex === '#FFFFFF' ? '0.5px solid var(--brand-border)' : 'none'
                 }}
               />
-              {selectedColors.includes(color.name) && (
+              {activeColors.includes(color.name) && (
                 <div
                   className="absolute inset-0 rounded-full"
                   style={{
@@ -171,7 +202,7 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
             <input
               type="number"
               value={priceRange[0]}
-              onChange={(e) => setPriceRange([parseInt(e.target.value), priceRange[1]])}
+              onChange={(e) => onPriceChange([parseInt(e.target.value) || 0, priceRange[1]])}
               className="w-full px-2 py-1 border rounded"
               style={{
                 borderColor: 'var(--brand-border)',
@@ -183,7 +214,7 @@ export function FilterSidebar({ activeFilters, onClearAll, onRemoveFilter }: Fil
             <input
               type="number"
               value={priceRange[1]}
-              onChange={(e) => setPriceRange([priceRange[0], parseInt(e.target.value)])}
+              onChange={(e) => onPriceChange([priceRange[0], parseInt(e.target.value) || 0])}
               className="w-full px-2 py-1 border rounded"
               style={{
                 borderColor: 'var(--brand-border)',

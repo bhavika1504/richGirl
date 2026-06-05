@@ -14,6 +14,8 @@ import { OrderSuccess } from './components/OrderSuccess';
 import { Verify } from './components/Verify';
 import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
+import { MyOrders } from './components/MyOrders';
+import { ProfileAddresses } from './components/ProfileAddresses';
 
 export default function App() {
   return (
@@ -25,13 +27,23 @@ export default function App() {
           <Route path="/shop/:category" element={<ProductListing />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/cart" element={<Cart />} />
-          
+
           <Route path="/profile" element={
             <ProtectedRoute>
               <Profile />
             </ProtectedRoute>
           } />
-          
+          <Route path="/profile/orders" element={
+            <ProtectedRoute>
+              <MyOrders />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile/addresses" element={
+            <ProtectedRoute>
+              <ProfileAddresses />
+            </ProtectedRoute>
+          } />
+
           <Route path="/admin" element={
             <ProtectedRoute adminOnly>
               <AdminDashboard />
@@ -43,7 +55,7 @@ export default function App() {
           <Route path="/verify" element={<Verify />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
-          
+
           <Route path="/track" element={<TrackOrder />} />
           <Route path="/track/:id" element={<TrackOrder />} />
           <Route path="/order-success" element={<OrderSuccess />} />

@@ -1,13 +1,13 @@
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { 
-  ArrowLeft, 
-  Settings, 
-  Package, 
-  Heart, 
-  MapPin, 
-  CreditCard, 
-  LogOut, 
+import {
+  ArrowLeft,
+  Settings,
+  Package,
+  Heart,
+  MapPin,
+  CreditCard,
+  LogOut,
   ChevronRight,
   User as UserIcon
 } from 'lucide-react';
@@ -20,17 +20,17 @@ export function Profile() {
   const { user, logout } = useAuth();
 
   const menuItems = [
-    { icon: Package, label: 'My Orders', description: 'Track, return or buy things again' },
-    { icon: Heart, label: 'Wishlist', description: 'Your favorite items saved' },
-    { icon: MapPin, label: 'Addresses', description: 'Save addresses for faster checkout' },
-    { icon: CreditCard, label: 'Payments', description: 'Manage your payment methods' },
-    { icon: Settings, label: 'Settings', description: 'Privacy and notifications' },
+    { icon: Package, label: 'My Orders', description: 'Track, return or buy things again', route: '/profile/orders' },
+    { icon: Heart, label: 'Wishlist', description: 'Your favorite items saved', route: null },
+    { icon: MapPin, label: 'Addresses', description: 'Save addresses for faster checkout', route: '/profile/addresses' },
+    { icon: CreditCard, label: 'Payments', description: 'Manage your payment methods', route: null },
+    { icon: Settings, label: 'Settings', description: 'Privacy and notifications', route: null },
   ];
 
   return (
     <div className="min-h-screen bg-[#F7FDF5] pb-24">
       <Navbar />
-      
+
       <main className="max-w-4xl mx-auto px-4 py-8 lg:py-12">
         {/* Header with Back Button */}
         <div className="flex items-center gap-4 mb-8">
@@ -61,7 +61,7 @@ export function Profile() {
                   Edit Profile
                 </button>
                 {user?.isAdmin && (
-                  <button 
+                  <button
                     onClick={() => navigate('/admin')}
                     className="text-xs font-bold text-purple-600 uppercase tracking-widest hover:underline"
                   >
@@ -78,7 +78,11 @@ export function Profile() {
           {menuItems.map((item, index) => (
             <motion.button
               key={index}
-              className="bg-white p-5 rounded-2xl border border-[var(--brand-border)] flex items-center gap-4 text-left hover:border-[var(--brand-cta-green)] transition-all group"
+              onClick={() => {
+                if (item.route) navigate(item.route);
+                else alert(`${item.label} — coming soon!`);
+              }}
+              className="bg-white p-5 rounded-2xl border border-[var(--brand-border)] flex items-center gap-4 text-left hover:border-[var(--brand-cta-green)] transition-all group cursor-pointer w-full"
               whileHover={{ x: 5 }}
             >
               <div className="w-12 h-12 bg-[var(--brand-alt-bg)] rounded-xl flex items-center justify-center text-[var(--brand-cta-green)] group-hover:bg-[var(--brand-mist-green)] transition-colors">
@@ -91,7 +95,7 @@ export function Profile() {
               <ChevronRight className="w-5 h-5 text-gray-300" />
             </motion.button>
           ))}
-          
+
           <motion.button
             className="mt-4 bg-red-50 p-5 rounded-2xl border border-red-100 flex items-center gap-4 text-left hover:bg-red-100 transition-all text-red-600 cursor-pointer"
             whileHover={{ x: 5 }}

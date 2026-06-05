@@ -2,24 +2,30 @@ import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { Category } from './models/Category.js';
 
-dotenv.config();
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const categories = [
-    { name: '3 Piece Dress', type: 'indian' },
-    { name: '2 Piece Dress', type: 'indian' },
-    { name: 'Kurtis', type: 'indian' },
-    { name: 'Tunics', type: 'western' },
-    { name: 'Tops', type: 'western' },
-    { name: 'Shirts', type: 'western' },
-    { name: 'Jumpsuits', type: 'western' },
-    { name: 'Jeans', type: 'western' },
-    { name: 'Cord Sets-Western', type: 'western' },
-    { name: 'Cord Sets-Indian', type: 'indian' },
-    { name: 'Western Dresses', type: 'western' },
-    { name: 'Skirts', type: 'western' },
-    { name: 'T-shirts', type: 'western' },
-    { name: 'Shorts', type: 'western' },
-    { name: 'Pants', type: 'western' }
+    { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
+    { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
+    { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
+    { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
+    { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
+    { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
+    { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
+    { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
+    { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
+    { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
+    { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
+    { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
+    { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
+    { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
+    { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
 ];
 
 async function seedCategories() {
@@ -35,6 +41,7 @@ async function seedCategories() {
                     name: cat.name,
                     type: cat.type,
                     slug,
+                    image: cat.image,
                     isActive: true
                 },
                 { upsert: true, new: true }

@@ -14,17 +14,42 @@ export function ProductListing() {
   const navigate = useNavigate();
   const [showFilters, setShowFilters] = useState(false);
   const [showSort, setShowSort] = useState(false);
-  const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState('Newest First');
+
+  // Filter states
+  const [activeSizes, setActiveSizes] = useState<string[]>([]);
+  const [activeColors, setActiveColors] = useState<string[]>([]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  const [activeSubCategories, setActiveSubCategories] = useState<string[]>([]);
+
+  const toggleSize = (size: string) => {
+    setActiveSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
+  };
+
+  const toggleColor = (color: string) => {
+    setActiveColors(prev => prev.includes(color) ? prev.filter(c => c !== color) : [...prev, color]);
+  };
+
+  const toggleSubCategory = (subCat: string) => {
+    setActiveSubCategories(prev => prev.includes(subCat) ? prev.filter(s => s !== subCat) : [...prev, subCat]);
+  };
+
+  const clearAllFilters = () => {
+    setActiveSizes([]);
+    setActiveColors([]);
+    setActiveSubCategories([]);
+    setPriceRange([0, 10000]);
+    setActiveFilters([]);
+  };
 
   const displayTitle = category ? category.charAt(0).toUpperCase() + category.slice(1).replace('-', ' ') : 'All Collections';
 
   const removeFilter = (filter: string) => {
-    setActiveFilters(prev => prev.filter(f => f !== filter));
-  };
-
-  const clearAllFilters = () => {
-    setActiveFilters([]);
+    // Determine which state to update based on the filter string
+    if (activeSizes.includes(filter)) toggleSize(filter);
+    else if (activeColors.includes(filter)) toggleColor(filter);
+    else if (activeSubCategories.includes(filter)) toggleSubCategory(filter);
   };
 
   return (
@@ -97,9 +122,18 @@ export function ProductListing() {
           {/* Desktop Sidebar */}
           <div className="hidden lg:block">
             <FilterSidebar
+              category={category}
               activeFilters={activeFilters}
+              activeSizes={activeSizes}
+              activeColors={activeColors}
+              activeSubCategories={activeSubCategories}
+              priceRange={priceRange}
               onClearAll={clearAllFilters}
               onRemoveFilter={removeFilter}
+              onToggleSize={toggleSize}
+              onToggleColor={toggleColor}
+              onToggleSubCategory={toggleSubCategory}
+              onPriceChange={setPriceRange}
             />
           </div>
 
@@ -108,6 +142,10 @@ export function ProductListing() {
             <ProductGrid
               category={category}
               activeFilters={activeFilters}
+              activeSizes={activeSizes}
+              activeColors={activeColors}
+              activeSubCategories={activeSubCategories}
+              priceRange={priceRange}
               onRemoveFilter={removeFilter}
               sortBy={sortBy}
               onSortChange={setSortBy}
@@ -122,7 +160,16 @@ export function ProductListing() {
       <FilterBottomSheet
         isOpen={showFilters}
         onClose={() => setShowFilters(false)}
+        category={category}
+        activeSizes={activeSizes}
+        activeColors={activeColors}
+        activeSubCategories={activeSubCategories}
+        priceRange={priceRange}
         onClearAll={clearAllFilters}
+        onToggleSize={toggleSize}
+        onToggleColor={toggleColor}
+        onToggleSubCategory={toggleSubCategory}
+        onPriceChange={setPriceRange}
       />
       <SortBottomSheet
         isOpen={showSort}
