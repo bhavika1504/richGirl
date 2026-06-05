@@ -34,26 +34,20 @@ export function Footer() {
             </p>
             <div className="flex gap-4">
               <a
-                href="#"
+                href="https://www.instagram.com/richgirl1990?igsh=MXFyMGtseXJqNmFheQ%3D%3D"
                 className="transition-opacity hover:opacity-70"
                 style={{ color: 'var(--brand-mist-green)' }}
               >
                 <Instagram className="w-5 h-5" />
               </a>
               <a
-                href="#"
+                href="https://www.facebook.com/rich.girl.fashion.hub.1990/"
                 className="transition-opacity hover:opacity-70"
                 style={{ color: 'var(--brand-mist-green)' }}
               >
                 <Facebook className="w-5 h-5" />
               </a>
-              <a
-                href="#"
-                className="transition-opacity hover:opacity-70"
-                style={{ color: 'var(--brand-mist-green)' }}
-              >
-                <Twitter className="w-5 h-5" />
-              </a>
+
             </div>
           </div>
 
