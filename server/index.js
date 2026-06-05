@@ -11,16 +11,17 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const result = dotenv.config({
-  path: path.join(__dirname, '..', '.env'),
-  override: true
-});
-if (result.error) {
-  console.error('❌ Failed to load .env from:', path.join(__dirname, '..', '.env'), result.error);
-} else {
-  console.log('✅ Loaded .env from:', path.join(__dirname, '..', '.env'));
-  const keyStatus = process.env.GEMINI_API_KEY ? `present (length: ${process.env.GEMINI_API_KEY.trim().length})` : 'MISSING';
-  console.log('GEMINI_API_KEY status:', keyStatus);
+// Only load .env file in local development - in production (Vercel), env vars come from dashboard
+if (process.env.NODE_ENV !== 'production') {
+  const result = dotenv.config({
+    path: path.join(__dirname, '..', '.env'),
+    override: true
+  });
+  if (result.error) {
+    console.error('❌ Failed to load .env:', result.error);
+  } else {
+    console.log('✅ Loaded .env for local development');
+  }
 }
 
 import { Product } from './models/Product.js';
@@ -46,88 +47,123 @@ const razorpay = new Razorpay({
   key_secret: process.env.RAZORPAY_KEY_SECRET,
 });
 
-// Connect to MongoDB Atlas
-mongoose.connect(process.env.MONGO_URI, {
-  dbName: process.env.MONGO_DB_NAME || 'RichGirl_Test'
-})
-  .then(async () => {
+// =====================
+// MONGODB CONNECTION (cached for serverless)
+// =====================
+let mongoConnected = false;
+
+const connectDB = async () => {
+  if (mongoConnected && mongoose.connection.readyState === 1) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      dbName: process.env.MONGO_DB_NAME || 'RichGirl_Test',
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+    });
+    mongoConnected = true;
     console.log('✅ Connected to MongoDB Atlas');
-    try {
-      const customerEmail = 'customer@example.com';
-      const existingCustomer = await User.findOne({ email: customerEmail });
-      if (!existingCustomer) {
-        const salt = await bcrypt.genSalt(10);
-        const hashedPassword = await bcrypt.hash('mockpassword123', salt);
-        const defaultCustomer = new User({
-          name: 'Default Customer',
-          email: customerEmail,
-          password: hashedPassword,
-          phone: '9999988888',
-          isAdmin: false,
-          isVerified: true
-        });
-        await defaultCustomer.save();
+  } catch (err) {
+    console.error('❌ MongoDB connection failed:', err.message);
+    throw err;
+  }
+};
 
-        const defaultCart = new Cart({ userId: defaultCustomer._id, items: [] });
-        await defaultCart.save();
-        console.log('🎉 Default customer customer@example.com seeded successfully.');
-      }
+// Run DB connection + seeding once on startup (for local dev)
+// In serverless (Vercel), connectDB is called per-request via middleware
+if (process.env.NODE_ENV !== 'production') {
+  connectDB().then(async () => {
+    // Seed default users and categories in local dev
+    await seedInitialData();
+  }).catch(err => console.error('❌ MongoDB Connection Error:', err));
+}
 
-      // Seed Admin User
-      const adminEmail = 'admin@richgirl.com';
-      const existingAdmin = await User.findOne({ email: adminEmail });
-      if (!existingAdmin) {
-        const salt = await bcrypt.genSalt(10);
-        const adminHashedPassword = await bcrypt.hash('adminpassword123', salt);
-        const defaultAdmin = new User({
-          name: 'RichGirl Admin',
-          email: adminEmail,
-          password: adminHashedPassword,
-          phone: '0000000000',
-          isAdmin: true,
-          isVerified: true
-        });
-        await defaultAdmin.save();
-        console.log('👑 Admin user admin@richgirl.com seeded successfully.');
-      }
-      // Seed Categories (synchronized with seedCategories.js)
-      const categoriesToSeed = [
-        { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
-        { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
-        { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
-        { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
-        { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
-        { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
-        { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
-        { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
-        { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
-        { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
-        { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
-        { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
-        { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
-        { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
-        { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
-      ];
-      for (const cat of categoriesToSeed) {
-        const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-        await Category.findOneAndUpdate(
-          { slug },
-          {
-            name: cat.name,
-            slug,
-            type: cat.type || 'western',
-            image: cat.image,
-            displayOrder: 10
-          },
-          { upsert: true }
-        );
-      }
-      console.log('✅ Categories synchronized successfully');
-    } catch (err) {
-      console.error('Error seeding data on startup:', err);
+// Middleware to ensure DB is connected on every request (serverless-safe)
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(503).json({ message: 'Database connection failed', error: err.message });
+  }
+});
+
+// Seed function (called on local startup or lazily in production)
+async function seedInitialData() {
+  try {
+    const customerEmail = 'customer@example.com';
+    const existingCustomer = await User.findOne({ email: customerEmail });
+    if (!existingCustomer) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash('mockpassword123', salt);
+      const defaultCustomer = new User({
+        name: 'Default Customer',
+        email: customerEmail,
+        password: hashedPassword,
+        phone: '9999988888',
+        isAdmin: false,
+        isVerified: true
+      });
+      await defaultCustomer.save();
+
+      const defaultCart = new Cart({ userId: defaultCustomer._id, items: [] });
+      await defaultCart.save();
+      console.log('🎉 Default customer customer@example.com seeded successfully.');
     }
-  })
-  .catch(err => console.error('❌ MongoDB Connection Error:', err));
+
+    // Seed Admin User
+    const adminEmail = 'admin@richgirl.com';
+    const existingAdmin = await User.findOne({ email: adminEmail });
+    if (!existingAdmin) {
+      const salt = await bcrypt.genSalt(10);
+      const adminHashedPassword = await bcrypt.hash('adminpassword123', salt);
+      const defaultAdmin = new User({
+        name: 'RichGirl Admin',
+        email: adminEmail,
+        password: adminHashedPassword,
+        phone: '0000000000',
+        isAdmin: true,
+        isVerified: true
+      });
+      await defaultAdmin.save();
+      console.log('👑 Admin user admin@richgirl.com seeded successfully.');
+    }
+    // Seed Categories (synchronized with seedCategories.js)
+    const categoriesToSeed = [
+      { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
+      { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
+      { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
+      { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
+      { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
+      { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
+      { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
+      { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
+      { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
+      { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
+      { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
+      { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
+      { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
+      { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
+      { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
+    ];
+    for (const cat of categoriesToSeed) {
+      const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      await Category.findOneAndUpdate(
+        { slug },
+        {
+          name: cat.name,
+          slug,
+          type: cat.type || 'western',
+          image: cat.image,
+          displayOrder: 10
+        },
+        { upsert: true }
+      );
+    }
+    console.log('✅ Categories synchronized successfully');
+  } catch (err) {
+    console.error('Error seeding data on startup:', err);
+  }
+}
 
 // =======================
 // ROUTES
