@@ -89,11 +89,11 @@ export function AdminDashboard() {
         api.getAdminStats(),
         api.getCategories()
       ]);
-      setProducts(productsData);
-      setOrders(ordersData);
-      setUsers(usersData);
-      setDbStats(statsData);
-      setCategories(catsData);
+      setProducts(Array.isArray(productsData) ? productsData : []);
+      setOrders(Array.isArray(ordersData) ? ordersData : []);
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setDbStats(statsData || { totalProducts: 0, lowStock: 0, activeOrders: 0, totalRevenue: 0 });
+      setCategories(Array.isArray(catsData) ? catsData : []);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -446,8 +446,8 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {products
-                    .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
+                  {Array.isArray(products) && products
+                    .filter(p => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
                     .map((product) => (
                       <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
                         <td className="px-6 py-4">
@@ -514,7 +514,7 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {orders
+                  {Array.isArray(orders) && orders
                     .filter(order => {
                       const matchesSearch = !searchQuery ||
                         (order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
@@ -565,7 +565,7 @@ export function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
-                  {users
+                  {Array.isArray(users) && users
                     .filter(u => !searchQuery ||
                       u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                       u.email?.toLowerCase().includes(searchQuery.toLowerCase())

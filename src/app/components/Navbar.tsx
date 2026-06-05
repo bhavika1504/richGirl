@@ -18,7 +18,9 @@ export function Navbar() {
     const fetchCartCount = async () => {
       try {
         const cartItems = await api.getCart();
-        const totalItems = cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0);
+        const totalItems = Array.isArray(cartItems)
+          ? cartItems.reduce((sum: number, item: any) => sum + item.quantity, 0)
+          : 0;
         setCartCount(totalItems);
       } catch (err) {
         console.error("Failed to load cart count:", err);

@@ -23,7 +23,7 @@ export function CategoryScroll() {
         {/* Scrollable container */}
         <div className="overflow-x-auto scrollbar-hide -mx-6 lg:-mx-12 px-6 lg:px-12">
           <div className="flex gap-4 min-w-max pb-2">
-            {categories.map((category, index) => (
+            {Array.isArray(categories) && categories.map((category, index) => (
               <Link
                 key={index}
                 to={`/shop/${category.name.toLowerCase().replace(/ /g, '-')}`}

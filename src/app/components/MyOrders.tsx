@@ -103,9 +103,8 @@ export function MyOrders() {
                                     </div>
                                 </div>
 
-                                {/* Products */}
                                 <div className="space-y-3 mb-5">
-                                    {order.products?.slice(0, 2).map((p: any, i: number) => (
+                                    {(order.products || []).slice(0, 2).map((p: any, i: number) => (
                                         <div key={i} className="flex items-center gap-3">
                                             {p.image && (
                                                 <img src={p.image} alt={p.name} className="w-14 h-14 object-cover rounded-xl border border-gray-100" />

@@ -37,7 +37,7 @@ export function ProductGrid({
       setLoading(true);
       try {
         const data = await api.getProducts(category);
-        setProducts(data);
+        setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching products:', error);
       } finally {

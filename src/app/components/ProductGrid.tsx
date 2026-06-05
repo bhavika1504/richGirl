@@ -133,7 +133,11 @@ export function ProductGrid() {
     const loadProducts = async () => {
       try {
         const data = await api.getProducts();
-        setProducts(data.slice(0, 8)); // Just show 8 on home
+        if (Array.isArray(data)) {
+          setProducts(data.slice(0, 8)); // Just show 8 on home
+        } else {
+          setProducts([]);
+        }
       } catch (error) {
         console.error('Failed to load products', error);
       } finally {

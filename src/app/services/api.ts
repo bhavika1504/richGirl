@@ -117,7 +117,7 @@ export const api = {
     const response = await axios.get(`${API_BASE_URL}/products`, {
       params: { category }
     });
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getProductById: async (id: string | number) => {
@@ -127,7 +127,7 @@ export const api = {
 
   getCategories: async () => {
     const response = await axios.get(`${API_BASE_URL}/categories`);
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getCart: async () => {
@@ -141,7 +141,7 @@ export const api = {
 
     try {
       const response = await axios.get(`${API_BASE_URL}/cart/${userId}`);
-      return response.data.items || [];
+      return Array.isArray(response.data.items) ? response.data.items : [];
     } catch (err) {
       console.error('Failed to get cart:', err);
       const guestCart = localStorage.getItem('guestCart');
@@ -274,13 +274,13 @@ export const api = {
   getAllOrders: async () => {
     await ensureAuth();
     const response = await axios.get(`${API_BASE_URL}/admin/orders`);
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   getAllUsers: async () => {
     await ensureAuth();
     const response = await axios.get(`${API_BASE_URL}/admin/users`);
-    return response.data;
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   createProduct: async (productData: any) => {
