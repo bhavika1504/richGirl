@@ -1,9 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Navbar } from './Navbar';
-import { MobileNav } from './MobileNav';
-import { api } from '../services/api';
 import { Package, ArrowLeft, MapPin, ChevronRight, Truck, Clock } from 'lucide-react';
+import { api } from '../services/api';
 import { motion } from 'motion/react';
 
 const STATUS_COLORS: Record<string, string> = {
@@ -145,7 +144,6 @@ export function MyOrders() {
                     </div>
                 )}
             </main>
-            <MobileNav />
         </div>
     );
 }

@@ -5,7 +5,6 @@ import { Navbar } from './Navbar';
 import { PageHeader } from './listing/PageHeader';
 import { FilterSidebar } from './listing/FilterSidebar';
 import { ProductGrid } from './listing/ProductGrid';
-import { MobileNav } from './MobileNav';
 import { FilterBottomSheet } from './listing/FilterBottomSheet';
 import { SortBottomSheet } from './listing/SortBottomSheet';
 
@@ -153,8 +152,6 @@ export function ProductListing() {
           </div>
         </div>
       </div>
-
-      <MobileNav />
 
       {/* Mobile Bottom Sheets */}
       <FilterBottomSheet

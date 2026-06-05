@@ -16,6 +16,7 @@ import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
 import { MyOrders } from './components/MyOrders';
 import { ProfileAddresses } from './components/ProfileAddresses';
+import { MobileNav } from './components/MobileNav';
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/order-success" element={<OrderSuccess />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        <MobileNav />
       </BrowserRouter>
     </AuthProvider>
   );

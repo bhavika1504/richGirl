@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { Navbar } from './Navbar';
-import { MobileNav } from './MobileNav';
 import { ArrowLeft, MapPin, Plus, Trash2 } from 'lucide-react';
 import { api } from '../services/api';
 import { motion } from 'motion/react';
@@ -201,7 +200,6 @@ export function ProfileAddresses() {
                     </div>
                 )}
             </main>
-            <MobileNav />
         </div>
     );
 }

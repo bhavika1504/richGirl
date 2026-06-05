@@ -19,7 +19,7 @@ export function CategoryScroll() {
 
   return (
     <section className="py-8 lg:py-10 bg-white">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
         {/* Scrollable container */}
         <div className="overflow-x-auto scrollbar-hide -mx-6 lg:-mx-12 px-6 lg:px-12">
           <div className="flex gap-4 min-w-max pb-2">

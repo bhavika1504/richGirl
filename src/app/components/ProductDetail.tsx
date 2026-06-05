@@ -6,7 +6,7 @@ import { ImageGallery } from './pdp/ImageGallery';
 import { ProductInfo } from './pdp/ProductInfo';
 import { ProductTabs } from './pdp/ProductTabs';
 import { RelatedProducts } from './pdp/RelatedProducts';
-import { MobileNav } from './MobileNav';
+import { motion, AnimatePresence } from 'motion/react';
 import { StickyBottomBar } from './pdp/StickyBottomBar';
 import { api } from '../services/api';
 
@@ -156,7 +156,6 @@ export function ProductDetail() {
         </div>
       </div>
 
-      <MobileNav />
       <StickyBottomBar price={product.price || 0} />
     </div>
   );

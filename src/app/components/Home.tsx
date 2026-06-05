@@ -5,7 +5,7 @@ import { ProductGrid } from './ProductGrid';
 import { IndianWearBanner } from './IndianWearBanner';
 import { Testimonials } from './Testimonials';
 import { Footer } from './Footer';
-import { MobileNav } from './MobileNav';
+import { api } from '../services/api';
 
 export function Home() {
   return (
@@ -19,7 +19,6 @@ export function Home() {
         <Testimonials />
       </main>
       <Footer />
-      <MobileNav />
     </div>
   );
 }

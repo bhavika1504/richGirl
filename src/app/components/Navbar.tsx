@@ -42,7 +42,7 @@ export function Navbar() {
   return (
     <>
       <nav className="bg-white sticky top-0 z-50" style={{ borderBottom: '0.5px solid var(--brand-border)' }}>
-        <div className="max-w-[1440px] mx-auto px-6 lg:px-12 h-20 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-12 h-20 flex items-center justify-between">
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-2 -ml-2"

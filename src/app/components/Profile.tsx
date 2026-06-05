@@ -12,7 +12,7 @@ import {
   User as UserIcon
 } from 'lucide-react';
 import { Navbar } from './Navbar';
-import { MobileNav } from './MobileNav';
+import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
 export function Profile() {
@@ -112,8 +112,6 @@ export function Profile() {
           </motion.button>
         </div>
       </main>
-
-      <MobileNav />
     </div>
   );
 }

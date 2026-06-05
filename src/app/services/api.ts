@@ -113,9 +113,9 @@ export const api = {
     return response.data;
   },
 
-  getProducts: async (category?: string) => {
+  getProducts: async (category?: string, type?: string) => {
     const response = await axios.get(`${API_BASE_URL}/products`, {
-      params: { category }
+      params: { category, type }
     });
     return Array.isArray(response.data) ? response.data : [];
   },

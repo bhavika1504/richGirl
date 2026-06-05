@@ -172,7 +172,7 @@ async function seedInitialData() {
 // --- Products ---
 app.get('/api/products', async (req, res) => {
   try {
-    const { category } = req.query;
+    const { category, type } = req.query;
     let query = {};
 
     if (category) {
@@ -184,6 +184,10 @@ app.get('/api/products', async (req, res) => {
         // Fallback to categoryName
         query.categoryName = { $regex: new RegExp(category, 'i') };
       }
+    }
+
+    if (type) {
+      query.type = type;
     }
 
     const products = await Product.find(query);

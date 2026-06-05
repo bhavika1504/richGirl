@@ -36,7 +36,14 @@ export function ProductGrid({
     const fetchProducts = async () => {
       setLoading(true);
       try {
-        const data = await api.getProducts(category);
+        let data;
+        if (category === 'indian' || category === 'western') {
+          // If it's a type (indian/western), pass as type param
+          data = await api.getProducts(undefined, category);
+        } else {
+          // Otherwise pass as category slug
+          data = await api.getProducts(category);
+        }
         setProducts(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching products:', error);

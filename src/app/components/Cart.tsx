@@ -1,7 +1,6 @@
 import { motion } from 'motion/react';
 import { Navbar } from './Navbar';
 import { Footer } from './Footer';
-import { MobileNav } from './MobileNav';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Trash2, Plus, Minus, ShoppingBag, ArrowLeft, ChevronRight, X, ShieldCheck, CreditCard, DollarSign } from 'lucide-react';
@@ -624,7 +623,6 @@ export function Cart() {
                   <button
                     type="button"
                     onClick={() => {
-                      // Check if form is valid if in form mode
                       if (showAddressForm) {
                         if (!address.fullName || !address.phone || !address.street || !address.city || !address.state || !address.zip) {
                           alert('Please fill all required address fields');
@@ -650,7 +648,7 @@ export function Cart() {
         </div>
       )}
 
-      <MobileNav />
+      <Footer />
     </div>
   );
 }

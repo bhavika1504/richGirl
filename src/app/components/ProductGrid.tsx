@@ -149,18 +149,18 @@ export function ProductGrid() {
 
   return (
     <section className="py-10 lg:py-14 bg-white">
-      <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
         {/* Section Header */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-4 mb-8 lg:mb-10 text-center lg:text-left">
+        <div className="flex items-center justify-between gap-4 mb-8 lg:mb-10 px-1 lg:px-0">
           <h2
-            className="uppercase tracking-wide"
+            className="uppercase tracking-wide text-left"
             style={{
               fontFamily: 'var(--font-headline)',
-              fontSize: 'clamp(24px, 3vw, 36px)',
+              fontSize: 'clamp(20px, 4vw, 32px)',
               color: 'var(--brand-dark-text)',
               fontWeight: '700',
               borderBottom: '3px solid var(--brand-cta-green)',
-              paddingBottom: '8px'
+              paddingBottom: '6px'
             }}
           >
             Latest Collection
