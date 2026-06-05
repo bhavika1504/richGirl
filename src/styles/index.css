@@ -2,3 +2,7 @@
 @import './tailwind.css';
 @import './theme.css';
 @import './scrollbar.css';
+
+html {
+  scroll-padding-top: 80px;
+}

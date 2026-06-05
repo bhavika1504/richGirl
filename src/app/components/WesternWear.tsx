@@ -40,13 +40,15 @@ export function WesternWear() {
           </div>
 
           {/* Right - 2x2 Mini Product Grid */}
-          <div className="flex flex-col justify-center">
+          <div className="flex flex-col justify-center items-center lg:items-start text-center lg:text-left">
             <h2
               className="mb-8"
               style={{
                 fontFamily: 'var(--font-headline)',
-                fontSize: 'clamp(22px, 3vw, 26px)',
-                color: 'var(--brand-dark-text)'
+                fontSize: 'clamp(24px, 3vw, 26px)',
+                color: 'var(--brand-dark-text)',
+                borderBottom: '3px solid var(--brand-cta-green)',
+                paddingBottom: '8px'
               }}
             >
               Western Vibes

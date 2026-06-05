@@ -7,12 +7,12 @@ export function IndianWearBanner() {
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
         <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
           {/* Left Content */}
-          <div className="max-w-xl z-10">
+          <div className="max-w-xl z-10 text-center lg:text-left flex flex-col items-center lg:items-start">
             <h2
               className="mb-4 uppercase tracking-wide"
               style={{
                 fontFamily: 'var(--font-headline)',
-                fontSize: 'clamp(32px, 4vw, 42px)',
+                fontSize: 'clamp(28px, 4vw, 42px)',
                 lineHeight: '1.2',
                 color: 'var(--brand-mist-green)',
                 fontWeight: '700',

@@ -1,4 +1,4 @@
-import { ShoppingCart, User, Menu, Search, X } from "lucide-react";
+import { ShoppingCart, User, Menu, Search, X, Flower2, Shirt, LayoutGrid, Package } from "lucide-react";
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { SearchOverlay } from "./SearchOverlay";
@@ -87,8 +87,11 @@ export function Navbar() {
           </Link>
 
           {/* Right Icons */}
-          <div className="flex items-center gap-2 lg:gap-4">
-            <button onClick={() => setIsSearchOpen(true)} className="p-2 hover:bg-[#F8F9F8] rounded-full transition-colors">
+          <div className="flex items-center gap-1 lg:gap-4">
+            <button
+              onClick={() => setIsSearchOpen(true)}
+              className="p-1.5 lg:p-2 hover:bg-[#F8F9F8] rounded-full transition-colors hidden lg:block"
+            >
               <Search className="w-5 h-5" style={{ color: "var(--brand-dark-text)" }} />
             </button>
             <Link to="/cart" className="p-2 relative">
@@ -103,7 +106,7 @@ export function Navbar() {
                 </span>
               )}
             </Link>
-            <button onClick={handleUserClick} className="p-2">
+            <button onClick={handleUserClick} className="p-2 hidden lg:block">
               <User className="w-5 h-5" style={{ color: "var(--brand-dark-text)" }} />
             </button>
           </div>
@@ -144,7 +147,7 @@ export function Navbar() {
                 className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                 style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
               >
-                🪷 Indian Wear
+                <Flower2 className="w-4 h-4 text-emerald-600" /> Indian Wear
               </Link>
               <Link
                 to="/shop/western"
@@ -152,7 +155,7 @@ export function Navbar() {
                 className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                 style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
               >
-                👗 Western Wear
+                <Shirt className="w-4 h-4 text-amber-600" /> Western Wear
               </Link>
               <Link
                 to="/shop"
@@ -160,7 +163,7 @@ export function Navbar() {
                 className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                 style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
               >
-                🛍️ All Collections
+                <LayoutGrid className="w-4 h-4 text-blue-600" /> All Collections
               </Link>
               <div className="border-t border-gray-100 pt-4 mt-2">
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-body)' }}>
@@ -172,7 +175,7 @@ export function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                   style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
                 >
-                  🙋 My Profile
+                  <User className="w-4 h-4 text-gray-500" /> My Profile
                 </Link>
                 <Link
                   to="/profile/orders"
@@ -180,7 +183,7 @@ export function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                   style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
                 >
-                  📦 My Orders
+                  <Package className="w-4 h-4 text-gray-500" /> My Orders
                 </Link>
                 <Link
                   to="/cart"
@@ -188,7 +191,7 @@ export function Navbar() {
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                   style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
                 >
-                  🛒 My Cart
+                  <ShoppingCart className="w-4 h-4 text-gray-500" /> My Cart
                   {cartCount > 0 && (
                     <span className="ml-auto bg-[var(--brand-cta-green)] text-white text-xs w-5 h-5 rounded-full flex items-center justify-center">
                       {cartCount}

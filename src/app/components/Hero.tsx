@@ -71,8 +71,8 @@ export function Hero() {
               <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
 
               {/* Content overlay */}
-              <div className="absolute inset-0 flex items-center">
-                <div className="px-6 lg:px-16 max-w-2xl">
+              <div className="absolute inset-0 flex items-center justify-center lg:justify-start">
+                <div className="px-10 lg:px-16 max-w-2xl text-center lg:text-left">
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -91,10 +91,10 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mb-6"
+                    className="mb-6 px-2 lg:px-0"
                     style={{
                       fontFamily: 'var(--font-headline)',
-                      fontSize: 'clamp(32px, 5vw, 48px)',
+                      fontSize: 'clamp(28px, 5vw, 48px)',
                       lineHeight: '1.1',
                       color: 'white',
                       fontWeight: '600'
