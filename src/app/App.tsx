@@ -16,6 +16,7 @@ import { ForgotPassword } from './components/ForgotPassword';
 import { ResetPassword } from './components/ResetPassword';
 import { MyOrders } from './components/MyOrders';
 import { ProfileAddresses } from './components/ProfileAddresses';
+import { OrderDetail } from './components/OrderDetail';
 import { MobileNav } from './components/MobileNav';
 
 export default function App() {
@@ -48,6 +49,11 @@ export default function App() {
           <Route path="/admin" element={
             <ProtectedRoute adminOnly>
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/orders/:id" element={
+            <ProtectedRoute adminOnly>
+              <OrderDetail />
             </ProtectedRoute>
           } />
 

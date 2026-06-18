@@ -65,10 +65,16 @@ export function Footer() {
               Shop
             </h4>
             <ul className="space-y-2">
-              {['Indian Wear', 'Western Wear', 'New Arrivals', 'Best Sellers', 'Sale'].map((item) => (
-                <li key={item}>
+              {[
+                { label: 'Indian Wear', path: '/shop/indian' },
+                { label: 'Western Wear', path: '/shop/western' },
+                { label: 'New Arrivals', path: '/shop?sort=Newest' },
+                { label: 'Best Sellers', path: '/shop?sort=Popularity' },
+                { label: 'Sale', path: '/shop?sale=true' }
+              ].map((item) => (
+                <li key={item.label}>
                   <Link
-                    to="/shop"
+                    to={item.path}
                     className="transition-opacity hover:opacity-70"
                     style={{
                       fontFamily: 'var(--font-body)',
@@ -76,7 +82,7 @@ export function Footer() {
                       color: 'var(--brand-cta-green)'
                     }}
                   >
-                    {item}
+                    {item.label}
                   </Link>
                 </li>
               ))}
@@ -97,10 +103,16 @@ export function Footer() {
               Help
             </h4>
             <ul className="space-y-2">
-              {['Shipping Info', 'Returns', 'Size Guide', 'Track Order', 'Contact Us'].map((item) => (
-                <li key={item}>
-                  <a
-                    href="#"
+              {[
+                { label: 'Shipping Info', path: '#' },
+                { label: 'Returns', path: '#' },
+                { label: 'Size Guide', path: '#' },
+                { label: 'Track Order', path: '/track' },
+                { label: 'Contact Us', path: 'mailto:customerrichgirl@gmail.com' }
+              ].map((item) => (
+                <li key={item.label}>
+                  <Link
+                    to={item.path}
                     className="transition-opacity hover:opacity-70"
                     style={{
                       fontFamily: 'var(--font-body)',
@@ -108,8 +120,8 @@ export function Footer() {
                       color: 'var(--brand-cta-green)'
                     }}
                   >
-                    {item}
-                  </a>
+                    {item.label}
+                  </Link>
                 </li>
               ))}
             </ul>

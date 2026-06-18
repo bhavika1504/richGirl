@@ -51,8 +51,8 @@
   --brand-breadcrumb: #4A7C3A;
 
   /* Brand Fonts */
-  --font-headline: 'Cormorant Garamond', serif;
-  --font-body: 'DM Sans', sans-serif;
+  --font-headline: var(--font-palatino);
+  --font-body: var(--font-palatino);
   --font-price: 'DM Mono', monospace;
 }
 

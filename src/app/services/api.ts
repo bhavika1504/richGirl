@@ -7,17 +7,17 @@ axios.interceptors.response.use(
   error => {
     if (error.response && error.response.status === 401) {
       // Clear auth on 401 but stay on current page
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('userName');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      sessionStorage.removeItem('userId');
+      sessionStorage.removeItem('userName');
       return Promise.reject(error);
     }
     return Promise.reject(error);
   }
 );
 axios.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   // Only attach Authorization for our own API calls
   if (token && config.url && config.url.startsWith(apiBase)) {
@@ -29,55 +29,29 @@ axios.interceptors.request.use((config) => {
 
 // Get current user ID dynamically
 const getCurrentUserId = () => {
-  return localStorage.getItem('userId');
+  return sessionStorage.getItem('userId');
 };
-const ensureAdminAuth = async () => {
-  const token = localStorage.getItem('token');
-  if (token) return;
-  const adminToken = import.meta.env.VITE_ADMIN_TOKEN;
-  if (adminToken) {
-    localStorage.setItem('token', adminToken);
-    return;
-  }
-  console.warn('No admin token provided; proceeding without authentication.');
-};
-
 const ensureAuth = async () => {
-  await ensureAdminAuth();
+  const token = sessionStorage.getItem('token');
+  if (!token) {
+    throw new Error('Authentication required');
+  }
 };
 
 export const api = {
   // Setup mock user for legacy support
   setupMockUser: async () => {
-    let userId = getCurrentUserId();
-    if (!userId) {
-      try {
-        const response = await axios.post(`${API_BASE_URL}/users/login`, {
-          email: 'customer@example.com',
-          password: 'mockpassword123'
-        });
-        userId = response.data.user?.id || response.data.id;
-        if (userId) {
-          localStorage.setItem('userId', userId);
-          if (response.data.token) {
-            localStorage.setItem('token', response.data.token);
-          }
-        }
-      } catch (err) {
-        console.error('Failed to setup mock user:', err);
-      }
-    }
-    return userId;
+    return null; // Mocking removed for security
   },
 
   login: async (email?: string, password?: string) => {
     const response = await axios.post(`${API_BASE_URL}/users/login`, { email, password });
 
     if (response.data.token && response.data.user) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
-      localStorage.setItem('userId', response.data.user.id || response.data.user._id);
-      localStorage.setItem('userName', response.data.user.name);
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify(response.data.user));
+      sessionStorage.setItem('userId', response.data.user.id || response.data.user._id);
+      sessionStorage.setItem('userName', response.data.user.name);
 
       // Merge guest cart after login
       await api.mergeCart();
@@ -131,7 +105,7 @@ export const api = {
   },
 
   getCart: async () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const userId = getCurrentUserId();
 
     if (!token || !userId) {
@@ -150,7 +124,7 @@ export const api = {
   },
 
   addToCart: async (item: any) => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const userId = getCurrentUserId();
 
     if (!token || !userId) {
@@ -231,7 +205,7 @@ export const api = {
   },
 
   mergeCart: async () => {
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const userId = getCurrentUserId();
     const guestCartJson = localStorage.getItem('guestCart');
 

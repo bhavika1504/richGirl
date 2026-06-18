@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import {
   LayoutDashboard,
   Package,
@@ -12,8 +12,28 @@ import {
   AlertTriangle,
   ArrowLeft,
   X,
-  Upload
+  Upload,
+  ExternalLink,
+  BarChart3,
+  Trash2,
+  PieChart as PieChartIcon,
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../services/api';
 import axios from 'axios';
@@ -36,7 +56,7 @@ export function AdminDashboard() {
     Cancelled: 'bg-red-50 text-red-600',
   };
 
-  const [activeTab, setActiveTab] = useState('products');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations'>('overview');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -67,8 +87,8 @@ export function AdminDashboard() {
     ],
     type: 'western'
   });
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState('');
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
 
@@ -106,20 +126,19 @@ export function AdminDashboard() {
   }, []);
 
   const handleGenerateAI = async () => {
-    if (!imagePreview) {
-      alert('Please upload an image first');
+    if (imagePreviews.length === 0) {
+      alert('Please upload/select an image first');
       return;
     }
     setGeneratingAI(true);
     try {
-      // We need to upload the image first if it's not already uploaded, 
-      // but the generate-description route expects a URL.
-      // So we'll upload to Cloudinary first.
-      let currentImageUrl = '';
-      if (imageFile) {
+      let currentImageUrl = imagePreviews[0];
+
+      // If the first image is a local blob (new file), upload it first
+      if (currentImageUrl.startsWith('blob:') && imageFiles.length > 0) {
         const config = await api.getConfig();
         const formData = new FormData();
-        formData.append('file', imageFile);
+        formData.append('file', imageFiles[0]);
         formData.append('upload_preset', config.cloudinaryUploadPreset);
         const res = await axios.post(
           `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
@@ -128,12 +147,8 @@ export function AdminDashboard() {
         currentImageUrl = res.data.secure_url;
       }
 
-      if (currentImageUrl) {
-        const res = await api.generateDescription(currentImageUrl);
-        setNewProduct({ ...newProduct, description: res.description });
-      } else {
-        alert('Upload failed or no image file selected.');
-      }
+      const res = await api.generateDescription(currentImageUrl);
+      setNewProduct({ ...newProduct, description: res.description });
     } catch (error: any) {
       console.error('AI generation error:', error);
       const errorMsg = error.response?.data?.message || error.message || 'Unknown error';
@@ -144,11 +159,22 @@ export function AdminDashboard() {
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
+    const files = e.target.files;
+    if (files) {
+      const newFiles = Array.from(files);
+      if (imageFiles.length + newFiles.length > 5) {
+        alert('Maximum 5 images allowed per product');
+        return;
+      }
+      setImageFiles(prev => [...prev, ...newFiles]);
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setImagePreviews(prev => [...prev, ...newPreviews]);
     }
+  };
+
+  const removeImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleOpenAddModal = () => {
@@ -178,7 +204,7 @@ export function AdminDashboard() {
       })),
       type: product.type || 'western'
     });
-    setImagePreview(product.image || (product.images?.[0]) || '');
+    setImagePreviews(product.images || (product.image ? [product.image] : []));
     setIsAddModalOpen(true);
   };
 
@@ -197,22 +223,22 @@ export function AdminDashboard() {
     e.preventDefault();
     setSubmittingProduct(true);
     try {
-      let imageUrl = imagePreview;
+      const finalImageUrls = [...imagePreviews.filter(p => !p.startsWith('blob:'))];
 
-      if (imageFile) {
-        try {
-          const config = await api.getConfig();
+      if (imageFiles.length > 0) {
+        const config = await api.getConfig();
+        const uploadPromises = imageFiles.map(file => {
           const formData = new FormData();
-          formData.append('file', imageFile);
+          formData.append('file', file);
           formData.append('upload_preset', config.cloudinaryUploadPreset);
-          const res = await axios.post(
+          return axios.post(
             `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
             formData
           );
-          imageUrl = res.data.secure_url;
-        } catch (uploadErr) {
-          console.error('Cloudinary upload failed:', uploadErr);
-        }
+        });
+
+        const uploadResults = await Promise.all(uploadPromises);
+        uploadResults.forEach(res => finalImageUrls.push(res.data.secure_url));
       }
 
       const productData = {
@@ -232,7 +258,8 @@ export function AdminDashboard() {
             stock: Number(v.stock)
           }))
         })),
-        image: imageUrl,
+        images: finalImageUrls,
+        image: finalImageUrls[0] || '', // Keep legacy 'image' for safety
         type: newProduct.type
       };
 
@@ -270,8 +297,8 @@ export function AdminDashboard() {
       ],
       type: 'western'
     });
-    setImageFile(null);
-    setImagePreview('');
+    setImageFiles([]);
+    setImagePreviews([]);
   };
 
   const calculateNetPrice = () => {
@@ -313,26 +340,78 @@ export function AdminDashboard() {
     { label: 'Low Stock', value: dbStats.lowStock.toString(), icon: AlertTriangle, color: 'text-red-600', bg: 'bg-red-50' },
   ];
 
+  // Analytics Data Preparation
+  const getDailyRevenue = () => {
+    const revenueMap: Record<string, number> = {};
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toLocaleDateString();
+    }).reverse();
+
+    last7Days.forEach(date => revenueMap[date] = 0);
+
+    orders.forEach(order => {
+      const date = new Date(order.createdAt).toLocaleDateString();
+      if (revenueMap[date] !== undefined) {
+        revenueMap[date] += order.totalAmount || 0;
+      }
+    });
+
+    return Object.entries(revenueMap).map(([date, revenue]) => ({
+      date: date.split('/')[0] + '/' + date.split('/')[1],
+      revenue
+    }));
+  };
+
+  const getOrderStatusData = () => {
+    const statusCounts: Record<string, number> = {};
+    orders.forEach(order => {
+      const status = order.shippingStatus || 'Processing';
+      statusCounts[status] = (statusCounts[status] || 0) + 1;
+    });
+
+    return Object.entries(statusCounts).map(([name, value]) => ({ name, value }));
+  };
+
+  const getCategoryData = () => {
+    const catMap: Record<string, number> = {};
+    products.forEach(p => {
+      const cat = p.categoryName || p.category || 'Other';
+      catMap[cat] = (catMap[cat] || 0) + 1;
+    });
+    return Object.entries(catMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 5);
+  };
+
+  const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
+
   return (
     <div className="min-h-screen bg-[#F8F9FB] flex">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col sticky top-0 h-screen">
         <div className="p-8">
           <Link to="/" className="flex items-center gap-2">
-            <h1 className="text-xl font-extrabold tracking-tighter" style={{ fontFamily: 'var(--font-headline)' }}>RICH GIRL</h1>
+            <img
+              src="/assets/richgirl_logo.png"
+              alt="RICH GIRL"
+              className="h-16 w-auto object-contain"
+            />
           </Link>
         </div>
 
         <nav className="flex-1 px-4 space-y-2">
           {[
-            { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
             { id: 'products', label: 'Products', icon: Package },
             { id: 'orders', label: 'Orders', icon: ShoppingBag },
             { id: 'users', label: 'Users', icon: Users },
           ].map((item) => (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              onClick={() => setActiveTab(item.id as any)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-medium ${activeTab === item.id
                 ? 'bg-[var(--brand-cta-green)] text-white shadow-lg shadow-green-100'
                 : 'text-gray-500 hover:bg-gray-50'
@@ -405,188 +484,312 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {/* Dynamic Table Section */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="p-6 border-b border-gray-50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
+        {/* Dynamic Content Section */}
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px]">
+          {activeTab === 'overview' && (
+            <div className="p-8 space-y-10">
+              {/* Chart Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Revenue Chart */}
+                <div className="bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                        <TrendingUp className="w-5 h-5 text-green-500" /> Revenue (Last 7 Days)
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-1 font-medium">Daily sales performance tracking</p>
+                    </div>
+                    <div className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold">LIVE</div>
+                  </div>
+                  <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={getDailyRevenue()}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF', fontWeight: 600 }} />
+                        <Tooltip
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                          cursor={{ fill: '#F9FAFB' }}
+                        />
+                        <Bar dataKey="revenue" fill="var(--brand-cta-green)" radius={[6, 6, 0, 0]} barSize={32} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-            {activeTab === 'orders' && (
-              <div className="flex gap-2">
-                {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
-                  <button
-                    key={status}
-                    onClick={() => setOrderStatusFilter(status)}
-                    className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${orderStatusFilter === status
-                      ? 'bg-[var(--brand-cta-green)] text-white border-transparent'
-                      : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
-                      }`}
-                  >
-                    {status}
-                  </button>
-                ))}
+                {/* Orders Status Pie */}
+                <div className="bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                  <div className="flex items-center justify-between mb-8">
+                    <div>
+                      <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
+                        <PieChartIcon className="w-5 h-5 text-blue-500" /> Order Distribution
+                      </h3>
+                      <p className="text-xs text-gray-400 mt-1 font-medium">Status breakdown for all orders</p>
+                    </div>
+                  </div>
+                  <div className="h-72 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={getOrderStatusData()}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={70}
+                          outerRadius={95}
+                          paddingAngle={8}
+                          dataKey="value"
+                        >
+                          {getOrderStatusData().map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} strokeWidth={0} />
+                          ))}
+                        </Pie>
+                        <Tooltip
+                          contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
+                        />
+                        <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingTop: '20px' }} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
               </div>
-            )}
 
-            <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
-              View All <ChevronRight className="w-4 h-4" />
-            </button>
-          </div>
-
-          <div className="overflow-x-auto">
-            {activeTab === 'products' && (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Product</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Category</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stock</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {Array.isArray(products) && products
-                    .filter(p => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
-                    .map((product) => (
-                      <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
-                              <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                              <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
-                        <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                              <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
-                            </div>
-                            <span className="text-xs font-bold text-gray-600">{product.inStock ? 'Yes' : 'No'}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'
-                            }`}>
-                            {product.inStock ? 'In Stock' : 'Out of Stock'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => handleEditProduct(product)}
-                              className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-blue-600"
-                              title="Edit Product"
-                            >
-                              <Package className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProduct(product.id || product._id)}
-                              className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-red-600"
-                              title="Delete Product"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
+              {/* Bottom Analytics */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Top Categories */}
+                <div className="lg:col-span-2 bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                  <h3 className="font-bold text-gray-900 mb-8 flex items-center gap-2 text-lg">
+                    <ShoppingBag className="w-5 h-5 text-purple-500" /> Catalog Insights
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+                    {getCategoryData().map((cat, idx) => (
+                      <div key={idx} className="group">
+                        <div className="flex justify-between text-xs font-bold text-gray-600 mb-3 uppercase tracking-wider">
+                          <span>{cat.name}</span>
+                          <span className="text-gray-900">{cat.value} items</span>
+                        </div>
+                        <div className="w-full h-3 bg-white rounded-full overflow-hidden shadow-inner border border-gray-100">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${(cat.value / (products.length || 1)) * 100}%` }}
+                            transition={{ duration: 1, ease: "easeOut" }}
+                            className="h-full bg-gradient-to-r from-[var(--brand-cta-green)] to-[#86EFAC]"
+                          />
+                        </div>
+                      </div>
                     ))}
-                </tbody>
-              </table>
-            )}
+                  </div>
+                </div>
 
-            {activeTab === 'orders' && (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Order ID</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Amount</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {Array.isArray(orders) && orders
-                    .filter(order => {
-                      const matchesSearch = !searchQuery ||
-                        (order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                        (order.userName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                        (order.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()));
+                {/* Alerts / Tasks */}
+                <div className="space-y-6">
+                  {dbStats.lowStock > 0 && (
+                    <div className="bg-red-50 border border-red-100 rounded-3xl p-6 shadow-sm">
+                      <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm mb-4">
+                        <AlertTriangle className="w-6 h-6 text-red-500" />
+                      </div>
+                      <h4 className="font-bold text-gray-900 mb-1">Restock Required</h4>
+                      <p className="text-xs text-gray-500 leading-relaxed mb-6">{dbStats.lowStock} products have reached critical stock levels.</p>
+                      <button
+                        onClick={() => setActiveTab('products')}
+                        className="w-full py-3 bg-white text-red-500 border border-red-100 rounded-xl font-bold text-xs hover:bg-red-100 transition-all cursor-pointer shadow-sm"
+                      >
+                        MANAGE INVENTORY
+                      </button>
+                    </div>
+                  )}
 
-                      const matchesStatus = orderStatusFilter === 'All' ||
-                        (order.shippingStatus === orderStatusFilter);
-
-                      return matchesSearch && matchesStatus;
-                    })
-                    .map((order) => (
-                      <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
-                        <td className="px-6 py-4">
-                          <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
-                          <p className="text-xs text-gray-500">{order.userEmail}</p>
-                        </td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
-                        <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
-                            {order.shippingStatus || 'Processing'}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <button
-                            onClick={() => openOrderUpdateModal(order)}
-                            className="text-[var(--brand-cta-green)] text-sm font-bold hover:underline cursor-pointer"
-                          >
-                            Update Status
-                          </button>
-                        </td>
-                      </tr>
+                  <div className="bg-[var(--brand-dark-text)] border border-black rounded-3xl p-6 text-white overflow-hidden relative">
+                    <div className="relative z-10">
+                      <h4 className="font-bold mb-2">Advanced Analytics</h4>
+                      <p className="text-[10px] text-gray-400 font-medium leading-relaxed mb-6">Unlock deeper insights into customer behavior and seasonal trends.</p>
+                      <button className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-[10px] font-bold uppercase transition-all tracking-widest cursor-pointer">
+                        View Full Report
+                      </button>
+                    </div>
+                    <BarChart3 className="absolute -right-4 -bottom-4 w-24 h-24 text-white/5 rotate-12" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+          {activeTab !== 'overview' && (
+            <Fragment>
+              <div className="p-6 border-b border-gray-50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
+                {activeTab === 'orders' && (
+                  <div className="flex gap-2">
+                    {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
+                      <button
+                        key={status}
+                        onClick={() => setOrderStatusFilter(status)}
+                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${orderStatusFilter === status
+                          ? 'bg-[var(--brand-cta-green)] text-white border-transparent'
+                          : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
+                          }`}
+                      >
+                        {status}
+                      </button>
                     ))}
-                </tbody>
-              </table>
-            )}
-
-            {activeTab === 'users' && (
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="bg-gray-50/50">
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Name</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Email</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Joined</th>
-                    <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {Array.isArray(users) && users
-                    .filter(u => !searchQuery ||
-                      u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                      u.email?.toLowerCase().includes(searchQuery.toLowerCase())
-                    )
-                    .map((user) => (
-                      <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                        <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                        <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
-                            }`}>
-                            {user.isAdmin ? 'Admin' : 'Customer'}
-                          </span>
-                        </td>
+                  </div>
+                )}
+                <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
+                  View All <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="overflow-x-auto">
+                {activeTab === 'products' && (
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50/50">
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Product</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Category</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stock</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Action</th>
                       </tr>
-                    ))}
-                </tbody>
-              </table>
-            )}
-          </div>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {Array.isArray(products) && products
+                        .filter(p => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
+                        .map((product) => (
+                          <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
+                                  <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
+                                </div>
+                                <div>
+                                  <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                                  <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
+                            <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                  <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
+                                </div>
+                                <span className={`text-xs font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-gray-600'}`}>
+                                  {product.inStock ? product.stock : '0'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? (product.stock <= 5 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600') : 'bg-red-50 text-red-600'}`}>
+                                {product.inStock ? (product.stock <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => handleEditProduct(product)}
+                                  className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-blue-600"
+                                  title="Edit Product"
+                                >
+                                  <Package className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteProduct(product.id || product._id)}
+                                  className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-red-600"
+                                  title="Delete Product"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+                {activeTab === 'orders' && (
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50/50">
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Order ID</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Amount</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {Array.isArray(orders) && orders
+                        .filter(order => {
+                          const matchesSearch = !searchQuery ||
+                            (order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                            (order.userName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                            (order.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()));
+                          const matchesStatus = orderStatusFilter === 'All' ||
+                            (order.shippingStatus === orderStatusFilter);
+                          return matchesSearch && matchesStatus;
+                        })
+                        .map((order) => (
+                          <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
+                            <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
+                            <td className="px-6 py-4">
+                              <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
+                              <p className="text-xs text-gray-500">{order.userEmail}</p>
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
+                            <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
+                                {order.shippingStatus || 'Processing'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                              <Link
+                                to={`/admin/orders/${order.id || order._id}`}
+                                className="inline-flex items-center gap-1 text-[var(--brand-cta-green)] text-xs font-bold hover:underline cursor-pointer bg-[var(--brand-alt-bg)] px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--brand-mist-green)]"
+                              >
+                                Manage <ExternalLink className="w-3 h-3" />
+                              </Link>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+                {activeTab === 'users' && (
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="bg-gray-50/50">
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Name</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Email</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Joined</th>
+                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-50">
+                      {Array.isArray(users) && users
+                        .filter(u => !searchQuery ||
+                          u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                        )
+                        .map((user) => (
+                          <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
+                            <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
+                                }`}>
+                                {user.isAdmin ? 'Admin' : 'Customer'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            </Fragment>
+          )}
         </div>
       </main>
 
@@ -640,7 +843,7 @@ export function AdminDashboard() {
                   <label className="block text-sm font-bold text-gray-700">Description</label>
                   <button
                     type="button"
-                    disabled={generatingAI || !imagePreview}
+                    disabled={generatingAI || imagePreviews.length === 0}
                     onClick={handleGenerateAI}
                     className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1 disabled:text-gray-400 disabled:no-underline"
                   >
@@ -871,32 +1074,43 @@ export function AdminDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-gray-700 mb-2">Product Image *</label>
-                <div className="border-2 border-dashed border-gray-200 rounded-3xl p-6 flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 transition-all relative">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    required={!imagePreview}
-                    onChange={handleImageChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  {imagePreview ? (
-                    <div className="relative w-32 h-40 rounded-2xl overflow-hidden shadow-md">
-                      <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/25 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                        <Upload className="w-6 h-6 text-white" />
-                      </div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Product Images (Up to 5) *</label>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-4">
+                  {imagePreviews.map((preview, idx) => (
+                    <div key={idx} className="relative aspect-[3/4] rounded-2xl overflow-hidden shadow-md group">
+                      <img src={preview} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => removeImage(idx)}
+                        className="absolute top-2 right-2 p-1.5 bg-white/90 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm hover:bg-white"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                      {idx === 0 && (
+                        <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[10px] py-1 text-center font-bold">
+                          MAIN IMAGE
+                        </div>
+                      )}
                     </div>
-                  ) : (
-                    <>
-                      <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-[var(--brand-cta-green)] shadow-sm mb-3">
-                        <Upload className="w-5 h-5" />
+                  ))}
+                  {imagePreviews.length < 5 && (
+                    <div className="relative aspect-[3/4] border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center bg-gray-50/50 hover:bg-gray-50 transition-all cursor-pointer">
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        required={imagePreviews.length === 0}
+                      />
+                      <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center text-[var(--brand-cta-green)] shadow-sm mb-2">
+                        <Plus className="w-4 h-4" />
                       </div>
-                      <p className="text-sm font-bold text-gray-700 mb-1">Click to upload image</p>
-                      <p className="text-xs text-gray-400">Supports PNG, JPG, JPEG (Max 5MB)</p>
-                    </>
+                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Add Image</span>
+                    </div>
                   )}
                 </div>
+                <p className="text-[11px] text-gray-400">First image will be used as the primary display image. (Max 5 images)</p>
               </div>
 
               <div className="flex gap-4 pt-4">

@@ -582,6 +582,36 @@ app.post('/api/orders', requireAuth, async (req, res) => {
 
     await newOrder.save();
 
+    // Decrement stock for each product in the order
+    for (const item of products) {
+      try {
+        const product = await Product.findById(item.id || item.productId);
+        if (product) {
+          // Find the specific size-color variant
+          const sizeObj = product.sizes.find(s => s.size === item.size);
+          if (sizeObj) {
+            const variant = sizeObj.variants.find(v => v.color === item.color);
+            if (variant) {
+              variant.stock = Math.max(0, variant.stock - item.quantity);
+
+              // Recalculate totalStock
+              product.totalStock = product.sizes.reduce((acc, s) =>
+                acc + s.variants.reduce((vAcc, v) => vAcc + v.stock, 0), 0
+              );
+              product.inStock = product.totalStock > 0;
+
+              await product.save();
+
+              // Check if we need to alert admin
+              checkLowStockAndNotify(product);
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Error updating stock for order:', err);
+      }
+    }
+
     // Clear the user's cart
     await Cart.findOneAndUpdate({ userId }, { items: [] });
 
@@ -1083,6 +1113,26 @@ if (process.env.NODE_ENV !== 'production') {
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
+}
+
+// --- Low Stock Helper ---
+async function checkLowStockAndNotify(product) {
+  const LOW_STOCK_THRESHOLD = 5;
+  if (product.totalStock <= LOW_STOCK_THRESHOLD) {
+    console.log(`⚠️ LOW STOCK ALERT: Product "${product.name}" is low on stock (${product.totalStock} remaining).`);
+
+    // In a real production environment, you would call a notification service here
+    // Example using existing WhatsApp service:
+    try {
+      const adminPhone = process.env.ADMIN_PHONE || '919876543210';
+      const message = `🚨 *RichGirl Inventory Alert*\n\nProduct: ${product.name}\nRemaining Stock: ${product.totalStock}\n\nPlease restock soon!`;
+
+      // await sendWhatsAppMessage(adminPhone, message);
+      console.log('✅ WhatsApp alert simulation sent to Admin.');
+    } catch (err) {
+      console.error('Failed to send inventory alert:', err);
+    }
+  }
 }
 
 export default app;

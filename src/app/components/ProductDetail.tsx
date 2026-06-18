@@ -129,7 +129,10 @@ export function ProductDetail() {
       <div className="lg:px-20 lg:py-8">
         <div className="lg:grid lg:grid-cols-2 lg:gap-12">
           {/* Left - Image Gallery */}
-          <ImageGallery images={product.images} badge={product.badge} />
+          <ImageGallery
+            images={product.images && product.images.length > 0 ? product.images : [product.image].filter(Boolean)}
+            badge={product.badge}
+          />
 
           {/* Right - Product Info */}
           <div className="px-4 lg:px-0 py-6 lg:py-0">
@@ -152,7 +155,7 @@ export function ProductDetail() {
 
         {/* Related Products */}
         <div className="mt-16">
-          <RelatedProducts />
+          <RelatedProducts category={product.category} currentProductId={product.id} />
         </div>
       </div>
 

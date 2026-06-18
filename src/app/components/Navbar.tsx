@@ -78,14 +78,11 @@ export function Navbar() {
 
           {/* Center Logo */}
           <Link to="/" className="absolute left-1/2 -translate-x-1/2">
-            <h1 className="tracking-[0.1em]" style={{
-              fontFamily: "var(--font-headline)",
-              color: "var(--brand-dark-text)",
-              fontWeight: "800",
-              fontSize: "clamp(18px, 5vw, 40px)"
-            }}>
-              RICH GIRL
-            </h1>
+            <img
+              src="/assets/richgirl_logo.png"
+              alt="RICH GIRL"
+              className="h-14 lg:h-18 w-auto object-contain"
+            />
           </Link>
 
           {/* Right Icons */}
@@ -129,9 +126,11 @@ export function Navbar() {
           {/* Drawer */}
           <div className="absolute top-0 left-0 bottom-0 w-72 bg-white shadow-2xl flex flex-col">
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-              <h2 className="font-extrabold tracking-tighter text-lg" style={{ fontFamily: 'var(--font-headline)', color: 'var(--brand-dark-text)' }}>
-                RICH GIRL
-              </h2>
+              <img
+                src="/assets/richgirl_logo.png"
+                alt="RICH GIRL"
+                className="h-14 lg:h-16 w-auto object-contain"
+              />
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
                 className="p-2 hover:bg-gray-100 rounded-full transition-colors"

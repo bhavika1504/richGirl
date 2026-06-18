@@ -1,32 +1,69 @@
-const relatedProducts = [
-  {
-    id: 1,
-    name: 'Embroidered Kurta',
-    image: 'https://images.unsplash.com/photo-1708534419572-6e6614a53ca1?w=300',
-    price: 2299,
-    originalPrice: 2899
-  },
-  {
-    id: 2,
-    name: 'Cotton Kurti Set',
-    image: 'https://images.unsplash.com/photo-1708534246055-d7b149acb731?w=300',
-    price: 2799
-  },
-  {
-    id: 3,
-    name: 'Printed Kurta',
-    image: 'https://images.unsplash.com/photo-1597983073540-684a10b15ab1?w=300',
-    price: 1899
-  },
-  {
-    id: 4,
-    name: 'Silk Kurta',
-    image: 'https://images.unsplash.com/photo-1597983073750-16f5ded1321f?w=300',
-    price: 3499
-  }
-];
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router';
+import { api } from '../../services/api';
 
-export function RelatedProducts() {
+interface RelatedProduct {
+  id: string | number;
+  name: string;
+  image: string;
+  price: number;
+  originalPrice?: number;
+  category?: string;
+}
+
+interface RelatedProductsProps {
+  category?: string;
+  currentProductId?: string | number;
+}
+
+export function RelatedProducts({ category, currentProductId }: RelatedProductsProps) {
+  const [products, setProducts] = useState<RelatedProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchRelatedProducts = async () => {
+      setLoading(true);
+      try {
+        // Fetch products by category if available, otherwise fetch all
+        const data = await api.getProducts(category);
+
+        if (Array.isArray(data)) {
+          // Filter out the current product and limit to 4
+          const filtered = data
+            .filter((p: any) => (p.id || p._id) !== currentProductId)
+            .slice(0, 4)
+            .map((p: any) => ({
+              id: p.id || p._id,
+              name: p.name,
+              image: p.image || (p.images && p.images[0]),
+              price: p.price,
+              originalPrice: p.originalPrice
+            }));
+
+          setProducts(filtered);
+        }
+      } catch (error) {
+        console.error('Failed to fetch related products:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRelatedProducts();
+  }, [category, currentProductId]);
+
+  if (loading) {
+    return (
+      <div className="px-4 lg:px-20 py-10 text-center text-gray-400">
+        Loading recommendations...
+      </div>
+    );
+  }
+
+  if (products.length === 0) {
+    return null; // Don't show the section if no related products
+  }
+
   return (
     <div className="px-4 lg:px-20">
       <h2
@@ -42,10 +79,11 @@ export function RelatedProducts() {
 
       <div className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 lg:min-w-0 min-w-max lg:w-auto w-[calc(100vw+200px)]">
-          {relatedProducts.map((product) => (
-            <div
+          {products.map((product) => (
+            <Link
               key={product.id}
-              className="bg-white rounded-2xl overflow-hidden border group cursor-pointer"
+              to={`/product/${product.id}`}
+              className="bg-white rounded-2xl overflow-hidden border group cursor-pointer block"
               style={{ borderColor: 'var(--brand-mist-green)', minWidth: '168px' }}
             >
               <div className="relative overflow-hidden" style={{ aspectRatio: '3/4' }}>
@@ -77,7 +115,7 @@ export function RelatedProducts() {
                       color: 'var(--brand-dark-text)'
                     }}
                   >
-                    ₹{product.price.toLocaleString()}
+                    ₹{product.price?.toLocaleString()}
                   </span>
                   {product.originalPrice && (
                     <span
@@ -93,7 +131,7 @@ export function RelatedProducts() {
                   )}
                 </div>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>

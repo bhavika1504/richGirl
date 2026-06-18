@@ -26,7 +26,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
         // For now, we'll search across all products and filter locally
         // In a real app, this would be a backend call: /api/products/search?q=...
         const allProducts = await api.getProducts();
-        const filtered = allProducts.filter((p: any) => 
+        const filtered = allProducts.filter((p: any) =>
           p.name.toLowerCase().includes(query.toLowerCase()) ||
           p.category.toLowerCase().includes(query.toLowerCase())
         );
@@ -73,7 +73,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                   className="flex-1 bg-transparent border-none outline-none text-xl font-medium placeholder:text-gray-300"
                   style={{ fontFamily: 'var(--font-body)' }}
                 />
-                <button 
+                <button
                   onClick={onClose}
                   className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                 >
@@ -88,31 +88,31 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                     <Loader2 className="w-8 h-8 text-[var(--brand-cta-green)] animate-spin" />
                   </div>
                 ) : results.length > 0 ? (
-                  <div className="grid gap-4">
-                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">Suggested Products</p>
+                  <div className="grid gap-0">
+                    <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4 px-2">Suggestions</p>
                     {results.map((product) => (
                       <Link
                         key={product.id}
                         to={`/product/${product.id}`}
                         onClick={onClose}
-                        className="flex items-center gap-4 p-3 hover:bg-[var(--brand-alt-bg)] rounded-2xl transition-colors group"
+                        className="flex items-center gap-4 py-3 px-4 hover:bg-[var(--brand-mist-green)] rounded-lg transition-colors group"
                       >
-                        <div className="w-16 h-20 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-                          <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
-                        </div>
+                        <SearchIcon className="w-4 h-4 text-gray-400" />
                         <div className="flex-1">
-                          <h4 className="font-bold text-[var(--brand-dark-text)]" style={{ fontFamily: 'var(--font-body)' }}>{product.name}</h4>
-                          <p className="text-sm text-[var(--brand-cta-green)] font-medium">₹{product.price.toLocaleString()}</p>
+                          <h4 className="text-[var(--brand-dark-text)]" style={{ fontFamily: 'var(--font-palatino)' }}>
+                            {product.name}
+                          </h4>
                         </div>
-                        <ArrowRight className="w-5 h-5 text-gray-300 opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all" />
+                        <ArrowRight className="w-4 h-4 text-gray-300 opacity-0 group-hover:opacity-100 transition-all" />
                       </Link>
                     ))}
-                    <Link 
-                      to="/shop" 
+                    <Link
+                      to="/shop"
                       onClick={onClose}
-                      className="text-center py-4 text-sm font-bold text-[var(--brand-cta-green)] hover:underline underline-offset-4"
+                      className="mt-4 px-4 py-3 text-sm font-bold text-[var(--brand-cta-green)] hover:bg-[var(--brand-alt-bg)] rounded-lg transition-colors flex items-center justify-between group"
                     >
-                      VIEW ALL COLLECTIONS
+                      VIEW ALL PRODUCTS
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </div>
                 ) : query && !loading ? (
