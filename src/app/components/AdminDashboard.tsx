@@ -11,6 +11,7 @@ import {
   TrendingUp,
   AlertTriangle,
   ArrowLeft,
+  Menu,
   X,
   Upload,
   ExternalLink,
@@ -45,7 +46,8 @@ const STANDARD_COLORS = [
 
 export function AdminDashboard() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
+  const isEmployee = user?.role === 'employee';
 
   const STATUS_COLORS: Record<string, string> = {
     Processing: 'bg-yellow-50 text-yellow-600',
@@ -56,7 +58,7 @@ export function AdminDashboard() {
     Cancelled: 'bg-red-50 text-red-600',
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations'>(isEmployee ? 'products' : 'overview');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -99,6 +101,77 @@ export function AdminDashboard() {
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
   const [updatingOrder, setUpdatingOrder] = useState(false);
 
+  // User management states
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [isEditingUser, setIsEditingUser] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    password: '',
+    role: 'employee' as 'admin' | 'employee' | 'customer'
+  });
+  const [submittingUser, setSubmittingUser] = useState(false);
+
+  // Shiprocket states
+  const [exportingShiprocket, setExportingShiprocket] = useState(false);
+  const [importingShiprocket, setImportingShiprocket] = useState(false);
+
+  const handleExportShiprocket = async () => {
+    setExportingShiprocket(true);
+    try {
+      const blob = await api.exportShiprocketOrders();
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      const date = new Date().toISOString().split('T')[0];
+      link.setAttribute('download', `shiprocket_orders_${date}.xlsx`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err: any) {
+      console.error('Export failed:', err);
+      let errorMsg = 'Export failed. Please check if you have pending orders.';
+
+      // If responseType is 'blob', axios includes the error JSON inside the blob
+      if (err.response?.data instanceof Blob) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result as string);
+            alert(`EXPORT ERROR: ${data.message || errorMsg}`);
+          } catch (e) {
+            alert(errorMsg);
+          }
+        };
+        reader.readAsText(err.response.data);
+      } else {
+        alert(err.response?.data?.message || errorMsg);
+      }
+    } finally {
+      setExportingShiprocket(false);
+    }
+  };
+
+  const handleImportShiprocket = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportingShiprocket(true);
+    try {
+      const res = await api.importShiprocketReport(file);
+      alert(`IMPORT COMPLETE!\n✅ Success: ${res.successCount}\n❌ Failures: ${res.errors.length}\n\n${res.errors.join('\n')}`);
+      reloadData();
+    } catch (err: any) {
+      console.error('Import failed:', err);
+      alert(`Import failed: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setImportingShiprocket(false);
+      e.target.value = '';
+    }
+  };
+
   const reloadData = async () => {
     setLoading(true);
     try {
@@ -122,8 +195,11 @@ export function AdminDashboard() {
   };
 
   useEffect(() => {
+    if (isEmployee && activeTab !== 'products') {
+      setActiveTab('products');
+    }
     reloadData();
-  }, []);
+  }, [user]);
 
   const handleGenerateAI = async () => {
     if (imagePreviews.length === 0) {
@@ -333,6 +409,56 @@ export function AdminDashboard() {
     }
   };
 
+  const handleOpenAddUserModal = () => {
+    setNewUser({ name: '', email: '', phone: '', password: '', role: 'employee' });
+    setIsEditingUser(false);
+    setSelectedUser(null);
+    setIsUserModalOpen(true);
+  };
+
+  const handleEditUser = (user: any) => {
+    setNewUser({
+      name: user.name,
+      email: user.email || '',
+      phone: user.phone || '',
+      password: '', // Don't show password
+      role: user.role || (user.isAdmin ? 'admin' : 'customer')
+    });
+    setIsEditingUser(true);
+    setSelectedUser(user);
+    setIsUserModalOpen(true);
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    try {
+      await api.deleteAdminUser(userId);
+      reloadData();
+    } catch (err) {
+      console.error('Failed to delete user:', err);
+      alert('Failed to delete user');
+    }
+  };
+
+  const handleUserSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingUser(true);
+    try {
+      if (isEditingUser && selectedUser) {
+        await api.updateAdminUser(selectedUser.id || selectedUser._id, newUser);
+      } else {
+        await api.createAdminUser(newUser);
+      }
+      setIsUserModalOpen(false);
+      reloadData();
+    } catch (err: any) {
+      console.error('Failed to submit user:', err);
+      alert(`FAILED TO SUBMIT USER: ${err.response?.data?.message || err.message}`);
+    } finally {
+      setSubmittingUser(false);
+    }
+  };
+
   const stats = [
     { label: 'Total Revenue', value: `₹${dbStats.totalRevenue.toLocaleString()}`, icon: TrendingUp, color: 'text-green-600', bg: 'bg-green-50' },
     { label: 'Active Orders', value: dbStats.activeOrders.toString(), icon: ShoppingBag, color: 'text-blue-600', bg: 'bg-blue-50' },
@@ -389,7 +515,7 @@ export function AdminDashboard() {
   const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'];
 
   return (
-    <div className="min-h-screen bg-[#F8F9FB] flex">
+    <div className="min-h-screen bg-[#F8F9FB] flex pb-20 lg:pb-0">
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-gray-200 hidden lg:flex flex-col sticky top-0 h-screen">
         <div className="p-8">
@@ -404,11 +530,11 @@ export function AdminDashboard() {
 
         <nav className="flex-1 px-4 space-y-2">
           {[
-            { id: 'overview', label: 'Overview', icon: BarChart3 },
-            { id: 'products', label: 'Products', icon: Package },
-            { id: 'orders', label: 'Orders', icon: ShoppingBag },
-            { id: 'users', label: 'Users', icon: Users },
-          ].map((item) => (
+            { id: 'overview', label: 'Overview', icon: BarChart3, hidden: isEmployee },
+            { id: 'products', label: 'Products', icon: Package, hidden: false },
+            { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
+            { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
+          ].filter(item => !item.hidden).map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
@@ -435,63 +561,97 @@ export function AdminDashboard() {
         </div>
       </aside>
 
+      {/* Mobile Bottom Tab Bar */}
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex lg:hidden z-40 safe-area-pb">
+        {[
+          { id: 'overview', label: 'Overview', icon: BarChart3, hidden: isEmployee },
+          { id: 'products', label: 'Products', icon: Package, hidden: false },
+          { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
+          { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
+        ].filter(item => !item.hidden).map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setActiveTab(item.id as any)}
+            className={`flex-1 flex flex-col items-center gap-1 py-3 text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === item.id
+              ? 'text-[var(--brand-cta-green)]'
+              : 'text-gray-400'
+              }`}
+          >
+            <item.icon className="w-5 h-5" />
+            {item.label}
+          </button>
+        ))}
+      </nav>
+
       {/* Main Content */}
-      <main className="flex-1 p-8 lg:p-12 overflow-y-auto">
-        <header className="flex items-center justify-between mb-10">
+      <main className="flex-1 p-4 md:p-8 lg:p-12 overflow-y-auto">
+        <header className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-6 md:mb-10">
           <div>
-            <h2 className="text-3xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-headline)' }}>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-headline)' }}>
               {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}
             </h2>
-            <p className="text-gray-500 text-sm mt-1" style={{ fontFamily: 'var(--font-body)' }}>Manage your store's inventory and orders</p>
+            <p className="text-gray-500 text-xs md:text-sm mt-1" style={{ fontFamily: 'var(--font-body)' }}>Manage your store's inventory and orders</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="relative hidden md:block">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 md:flex-none">
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder={`Search ${activeTab}...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm outline-none focus:border-[var(--brand-cta-green)] transition-all w-64"
+                className="w-full md:w-64 bg-white border border-gray-200 rounded-full py-2 pl-10 pr-4 text-sm outline-none focus:border-[var(--brand-cta-green)] transition-all"
               />
             </div>
+            {activeTab === 'users' && (
+              <button
+                onClick={handleOpenAddUserModal}
+                className="flex items-center justify-center gap-2 bg-[var(--brand-cta-green)] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#10B981]/20 cursor-pointer text-sm whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="hidden sm:inline">ADD EMPLOYEE</span>
+                <span className="sm:hidden">ADD</span>
+              </button>
+            )}
             {activeTab === 'products' && (
               <button
                 onClick={handleOpenAddModal}
-                className="flex-1 lg:flex-none flex items-center justify-center gap-2 bg-[var(--brand-cta-green)] text-white px-6 py-3 rounded-2xl font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#10B981]/20 cursor-pointer"
+                className="flex items-center justify-center gap-2 bg-[var(--brand-cta-green)] text-white px-4 md:px-6 py-2.5 md:py-3 rounded-2xl font-bold transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#10B981]/20 cursor-pointer text-sm whitespace-nowrap"
               >
                 <Plus className="w-4 h-4" />
-                ADD PRODUCT
+                <span className="hidden sm:inline">ADD PRODUCT</span>
+                <span className="sm:hidden">ADD</span>
               </button>
             )}
           </div>
         </header>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-          {stats.map((stat, i) => (
-            <div key={i} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className={`${stat.bg} ${stat.color} p-3 rounded-2xl`}>
-                  <stat.icon className="w-6 h-6" />
+        {!isEmployee && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-10">
+            {stats.map((stat, i) => (
+              <div key={i} className="bg-white p-4 md:p-6 rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <div className={`${stat.bg} ${stat.color} p-2 md:p-3 rounded-xl md:rounded-2xl`}>
+                    <stat.icon className="w-4 h-4 md:w-6 md:h-6" />
+                  </div>
                 </div>
-                <MoreVertical className="w-5 h-5 text-gray-300" />
+                <p className="text-gray-500 text-[10px] md:text-sm font-medium mb-0.5" style={{ fontFamily: 'var(--font-body)' }}>{stat.label}</p>
+                <h4 className="text-lg md:text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-price)' }}>{stat.value}</h4>
               </div>
-              <p className="text-gray-500 text-sm font-medium mb-1" style={{ fontFamily: 'var(--font-body)' }}>{stat.label}</p>
-              <h4 className="text-2xl font-bold text-gray-900" style={{ fontFamily: 'var(--font-price)' }}>{stat.value}</h4>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Dynamic Content Section */}
-        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px]">
+        <div className="bg-white rounded-2xl md:rounded-3xl border border-gray-100 shadow-sm overflow-hidden min-h-[400px] md:min-h-[600px]">
           {activeTab === 'overview' && (
-            <div className="p-8 space-y-10">
+            <div className="p-4 md:p-8 space-y-6 md:space-y-10">
               {/* Chart Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
                 {/* Revenue Chart */}
-                <div className="bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                <div className="bg-gray-50/30 rounded-2xl md:rounded-3xl p-4 md:p-8 border border-gray-100">
                   <div className="flex items-center justify-between mb-8">
                     <div>
                       <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
@@ -501,7 +661,7 @@ export function AdminDashboard() {
                     </div>
                     <div className="px-3 py-1 bg-green-50 text-green-600 rounded-full text-[10px] font-bold">LIVE</div>
                   </div>
-                  <div className="h-72 w-full">
+                  <div className="h-48 md:h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={getDailyRevenue()}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
@@ -518,7 +678,7 @@ export function AdminDashboard() {
                 </div>
 
                 {/* Orders Status Pie */}
-                <div className="bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                <div className="bg-gray-50/30 rounded-2xl md:rounded-3xl p-4 md:p-8 border border-gray-100">
                   <div className="flex items-center justify-between mb-8">
                     <div>
                       <h3 className="font-bold text-gray-900 flex items-center gap-2 text-lg">
@@ -527,7 +687,7 @@ export function AdminDashboard() {
                       <p className="text-xs text-gray-400 mt-1 font-medium">Status breakdown for all orders</p>
                     </div>
                   </div>
-                  <div className="h-72 w-full">
+                  <div className="h-56 md:h-72 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
@@ -554,9 +714,9 @@ export function AdminDashboard() {
               </div>
 
               {/* Bottom Analytics */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
                 {/* Top Categories */}
-                <div className="lg:col-span-2 bg-gray-50/30 rounded-3xl p-8 border border-gray-100">
+                <div className="lg:col-span-2 bg-gray-50/30 rounded-2xl md:rounded-3xl p-4 md:p-8 border border-gray-100">
                   <h3 className="font-bold text-gray-900 mb-8 flex items-center gap-2 text-lg">
                     <ShoppingBag className="w-5 h-5 text-purple-500" /> Catalog Insights
                   </h3>
@@ -614,110 +774,207 @@ export function AdminDashboard() {
           )}
           {activeTab !== 'overview' && (
             <Fragment>
-              <div className="p-6 border-b border-gray-50 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <h3 className="font-bold text-gray-900">Recent {activeTab}</h3>
+              <div className="p-4 md:p-6 border-b border-gray-50 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <h3 className="font-bold text-gray-900 text-sm md:text-base">Recent {activeTab}</h3>
                 {activeTab === 'orders' && (
-                  <div className="flex gap-2">
-                    {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
-                      <button
-                        key={status}
-                        onClick={() => setOrderStatusFilter(status)}
-                        className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border ${orderStatusFilter === status
-                          ? 'bg-[var(--brand-cta-green)] text-white border-transparent'
-                          : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
-                          }`}
-                      >
-                        {status}
-                      </button>
-                    ))}
+                  <div className="flex flex-col sm:flex-row gap-4 flex-1">
+                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 scrollbar-hide flex-1">
+                      {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map(status => (
+                        <button
+                          key={status}
+                          onClick={() => setOrderStatusFilter(status)}
+                          className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${orderStatusFilter === status
+                            ? 'bg-[var(--brand-cta-green)] text-white border-transparent'
+                            : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-gray-100'
+                            }`}
+                        >
+                          {status}
+                        </button>
+                      ))}
+                    </div>
+
+                    {!isEmployee && (
+                      <div className="flex gap-2 ml-auto">
+                        <button
+                          onClick={handleExportShiprocket}
+                          disabled={exportingShiprocket}
+                          title="Export Today's Orders for Shiprocket"
+                          className="flex items-center gap-2 bg-[var(--brand-dark-text)] text-white px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-black transition-all shadow-sm active:scale-95 disabled:bg-gray-300"
+                        >
+                          <Package className="w-3.5 h-3.5" />
+                          {exportingShiprocket ? 'EXPORTING...' : 'Shiprocket Export'}
+                        </button>
+
+                        <label className="flex items-center gap-2 bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-wider hover:bg-gray-50 transition-all shadow-sm cursor-pointer active:scale-95">
+                          <Upload className="w-3.5 h-3.5" />
+                          {importingShiprocket ? 'IMPORTING...' : 'Import Track IDs'}
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept=".xlsx,.xls"
+                            onChange={handleImportShiprocket}
+                            disabled={importingShiprocket}
+                          />
+                        </label>
+                      </div>
+                    )}
                   </div>
                 )}
-                <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline">
+                <button className="text-sm font-bold text-[var(--brand-cta-green)] flex items-center gap-1 hover:underline hidden md:flex">
                   View All <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
               <div className="overflow-x-auto">
                 {activeTab === 'products' && (
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50">
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Product</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Category</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stock</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
+                  <>
+                    {/* Desktop Table */}
+                    <table className="w-full text-left hidden md:table">
+                      <thead>
+                        <tr className="bg-gray-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Product</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Category</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stock</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {Array.isArray(products) && products
+                          .filter(p => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
+                          .map((product) => (
+                            <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
+                                    <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
+                                  </div>
+                                  <div>
+                                    <p className="font-bold text-gray-900 text-sm">{product.name}</p>
+                                    <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                    <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
+                                  </div>
+                                  <span className={`text-xs font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-gray-600'}`}>
+                                    {product.inStock ? product.stock : '0'}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? (product.stock <= 5 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600') : 'bg-red-50 text-red-600'}`}>
+                                  {product.inStock ? (product.stock <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={() => handleEditProduct(product)}
+                                    className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-blue-600"
+                                    title="Edit Product"
+                                  >
+                                    <Package className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProduct(product.id || product._id)}
+                                    className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-red-600"
+                                    title="Delete Product"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-gray-50">
                       {Array.isArray(products) && products
                         .filter(p => !searchQuery || p.name?.toLowerCase().includes(searchQuery.toLowerCase()) || p.categoryName?.toLowerCase().includes(searchQuery.toLowerCase()) || p.category?.toLowerCase().includes(searchQuery.toLowerCase()))
                         .map((product) => (
-                          <tr key={product.id} className="hover:bg-gray-50/50 transition-colors group">
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-3">
-                                <div className="w-12 h-14 bg-gray-100 rounded-lg overflow-hidden">
-                                  <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
-                                </div>
-                                <div>
-                                  <p className="font-bold text-gray-900 text-sm">{product.name}</p>
-                                  <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
-                            <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
-                                  <div className={`h-full rounded-full ${product.inStock ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: product.inStock ? '80%' : '20%' }} />
-                                </div>
-                                <span className={`text-xs font-bold ${product.stock <= 5 ? 'text-red-500' : 'text-gray-600'}`}>
-                                  {product.inStock ? product.stock : '0'}
+                          <div key={product.id} className="p-4 flex items-center gap-3">
+                            <div className="w-14 h-16 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+                              <img src={product.image || (product.images?.[0])} alt="" className="w-full h-full object-cover" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-900 text-sm truncate">{product.name}</p>
+                              <p className="text-[11px] text-gray-500 capitalize">{product.categoryName || product.category}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</span>
+                                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${product.inStock ? (product.stock <= 5 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600') : 'bg-red-50 text-red-600'}`}>
+                                  {product.inStock ? (product.stock <= 5 ? 'Low' : `${product.stock} pcs`) : 'OOS'}
                                 </span>
                               </div>
-                            </td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${product.inStock ? (product.stock <= 5 ? 'bg-orange-50 text-orange-600' : 'bg-green-50 text-green-600') : 'bg-red-50 text-red-600'}`}>
-                                {product.inStock ? (product.stock <= 5 ? 'Low Stock' : 'In Stock') : 'Out of Stock'}
-                              </span>
-                            </td>
-                            <td className="px-6 py-4">
-                              <div className="flex items-center gap-2">
-                                <button
-                                  onClick={() => handleEditProduct(product)}
-                                  className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-blue-600"
-                                  title="Edit Product"
-                                >
-                                  <Package className="w-4 h-4" />
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteProduct(product.id || product._id)}
-                                  className="p-2 hover:bg-white hover:shadow-md rounded-lg transition-all text-red-600"
-                                  title="Delete Product"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+                            </div>
+                            <div className="flex flex-col gap-1">
+                              <button onClick={() => handleEditProduct(product)} className="p-2 bg-blue-50 rounded-lg text-blue-600"><Package className="w-4 h-4" /></button>
+                              <button onClick={() => handleDeleteProduct(product.id || product._id)} className="p-2 bg-red-50 rounded-lg text-red-600"><Trash2 className="w-4 h-4" /></button>
+                            </div>
+                          </div>
                         ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
                 {activeTab === 'orders' && (
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50">
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Order ID</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Amount</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
+                  <>
+                    {/* Desktop Table */}
+                    <table className="w-full text-left hidden md:table">
+                      <thead>
+                        <tr className="bg-gray-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Order ID</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Customer</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Date</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Amount</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Status</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {Array.isArray(orders) && orders
+                          .filter(order => {
+                            const matchesSearch = !searchQuery ||
+                              (order.orderId?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                              (order.userName?.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                              (order.userEmail?.toLowerCase().includes(searchQuery.toLowerCase()));
+                            const matchesStatus = orderStatusFilter === 'All' ||
+                              (order.shippingStatus === orderStatusFilter);
+                            return matchesSearch && matchesStatus;
+                          })
+                          .map((order) => (
+                            <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
+                              <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
+                              <td className="px-6 py-4">
+                                <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
+                                <p className="text-xs text-gray-500">{order.userEmail}</p>
+                              </td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
+                              <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
+                                  {order.shippingStatus || 'Processing'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <Link
+                                  to={`/admin/orders/${order.id || order._id}`}
+                                  className="inline-flex items-center gap-1 text-[var(--brand-cta-green)] text-xs font-bold hover:underline cursor-pointer bg-[var(--brand-alt-bg)] px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--brand-mist-green)]"
+                                >
+                                  Manage <ExternalLink className="w-3 h-3" />
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-gray-50">
                       {Array.isArray(orders) && orders
                         .filter(order => {
                           const matchesSearch = !searchQuery ||
@@ -729,63 +986,117 @@ export function AdminDashboard() {
                           return matchesSearch && matchesStatus;
                         })
                         .map((order) => (
-                          <tr key={order.id} className="hover:bg-gray-50/50 transition-colors group">
-                            <td className="px-6 py-4 font-bold text-gray-900 text-sm">{order.orderId}</td>
-                            <td className="px-6 py-4">
-                              <p className="font-bold text-gray-900 text-sm">{order.userName}</p>
-                              <p className="text-xs text-gray-500">{order.userEmail}</p>
-                            </td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</td>
-                            <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
+                          <div key={order.id} className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-bold text-gray-900 text-sm">{order.orderId}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${STATUS_COLORS[order.shippingStatus] || 'bg-gray-50 text-gray-500'}`}>
                                 {order.shippingStatus || 'Processing'}
                               </span>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                              <Link
-                                to={`/admin/orders/${order.id || order._id}`}
-                                className="inline-flex items-center gap-1 text-[var(--brand-cta-green)] text-xs font-bold hover:underline cursor-pointer bg-[var(--brand-alt-bg)] px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--brand-mist-green)]"
-                              >
-                                Manage <ExternalLink className="w-3 h-3" />
-                              </Link>
-                            </td>
-                          </tr>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-gray-600">{order.userName}</p>
+                                <p className="text-[10px] text-gray-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</span>
+                                <Link
+                                  to={`/admin/orders/${order.id || order._id}`}
+                                  className="p-2 bg-[var(--brand-alt-bg)] rounded-lg text-[var(--brand-cta-green)]"
+                                >
+                                  <ExternalLink className="w-4 h-4" />
+                                </Link>
+                              </div>
+                            </div>
+                          </div>
                         ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
                 {activeTab === 'users' && (
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="bg-gray-50/50">
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Name</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Email</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Joined</th>
-                        <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-50">
+                  <>
+                    {/* Desktop Table */}
+                    <table className="w-full text-left hidden md:table">
+                      <thead>
+                        <tr className="bg-gray-50/50">
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Name</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Email</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Joined</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Role</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {Array.isArray(users) && users
+                          .filter(u => !searchQuery ||
+                            u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                            u.email?.toLowerCase().includes(searchQuery.toLowerCase())
+                          )
+                          .map((user) => (
+                            <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
+                              <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
+                              <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
+                              <td className="px-6 py-4">
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.role === 'admin' || user.isAdmin ? 'bg-purple-50 text-purple-600' :
+                                  user.role === 'employee' ? 'bg-blue-50 text-blue-600' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>
+                                  {user.role === 'admin' || user.isAdmin ? 'Admin' :
+                                    user.role === 'employee' ? 'Employee' : 'Customer'}
+                                </span>
+                              </td>
+                              <td className="px-6 py-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleEditUser(user)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg text-blue-600 transition-colors"
+                                  >
+                                    <Plus className="w-4 h-4 rotate-45" /> {/* Use Plus as edit for now or similar icon */}
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteUser(user.id || user._id)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg text-red-600 transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                    {/* Mobile Card View */}
+                    <div className="md:hidden divide-y divide-gray-50">
                       {Array.isArray(users) && users
                         .filter(u => !searchQuery ||
                           u.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           u.email?.toLowerCase().includes(searchQuery.toLowerCase())
                         )
                         .map((user) => (
-                          <tr key={user.id} className="hover:bg-gray-50/50 transition-colors group">
-                            <td className="px-6 py-4 font-bold text-gray-900 text-sm">{user.name}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{user.email}</td>
-                            <td className="px-6 py-4 text-sm text-gray-600">{new Date(user.createdAt).toLocaleDateString()}</td>
-                            <td className="px-6 py-4">
-                              <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider ${user.isAdmin ? 'bg-purple-50 text-purple-600' : 'bg-gray-100 text-gray-600'
-                                }`}>
-                                {user.isAdmin ? 'Admin' : 'Customer'}
-                              </span>
-                            </td>
-                          </tr>
+                          <div key={user.id} className="p-4 flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center flex-shrink-0">
+                              <span className="text-sm font-bold text-gray-600">{user.name?.charAt(0)?.toUpperCase()}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-900 text-sm truncate">{user.name}</p>
+                              <p className="text-[11px] text-gray-500 truncate">{user.email || user.phone}</p>
+                            </div>
+                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${user.role === 'admin' || user.isAdmin ? 'bg-purple-50 text-purple-600' : user.role === 'employee' ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-600'}`}>
+                              {user.role === 'admin' || user.isAdmin ? 'Admin' : user.role === 'employee' ? 'Employee' : 'Customer'}
+                            </span>
+                            <div className="flex flex-col gap-1">
+                              <button onClick={() => handleEditUser(user)} className="p-1.5 bg-blue-50 rounded-lg text-blue-600">
+                                <Plus className="w-3 h-3 rotate-45" />
+                              </button>
+                              <button onClick={() => handleDeleteUser(user.id || user._id)} className="p-1.5 bg-red-50 rounded-lg text-red-600">
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          </div>
                         ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </>
                 )}
               </div>
             </Fragment>
@@ -1201,6 +1512,104 @@ export function AdminDashboard() {
                   className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 disabled:bg-gray-400 cursor-pointer"
                 >
                   {updatingOrder ? 'UPDATING...' : 'UPDATE ORDER'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* USER MODAL */}
+      {isUserModalOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl border border-gray-100 p-8 relative">
+            <button
+              onClick={() => setIsUserModalOpen(false)}
+              className="absolute right-6 top-6 p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
+            >
+              <X className="w-6 h-6 text-gray-400 hover:text-gray-700" />
+            </button>
+
+            <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>
+              {isEditingUser ? 'Edit User' : 'Add New Employee'}
+            </h3>
+
+            <form onSubmit={handleUserSubmit} className="space-y-5" style={{ fontFamily: 'var(--font-body)' }}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm"
+                    placeholder="Full Name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Role</label>
+                  <select
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value as any })}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-bold"
+                  >
+                    <option value="customer">Customer</option>
+                    <option value="employee">Employee</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                <input
+                  type="email"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm"
+                  placeholder="email@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">Phone *</label>
+                <input
+                  type="text"
+                  required
+                  value={newUser.phone}
+                  onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm"
+                  placeholder="Phone Number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-gray-700 mb-2">{isEditingUser ? 'New Password (Optional)' : 'Password *'}</label>
+                <input
+                  type="password"
+                  required={!isEditingUser}
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              <div className="flex gap-4 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setIsUserModalOpen(false)}
+                  className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all cursor-pointer"
+                >
+                  CANCEL
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingUser}
+                  className="flex-1 py-4 bg-[var(--brand-cta-green)] hover:scale-[1.02] text-white rounded-2xl font-bold transition-all active:scale-[0.98] disabled:bg-gray-400 cursor-pointer"
+                >
+                  {submittingUser ? 'SAVING...' : (isEditingUser ? 'UPDATE USER' : 'CREATE ACCOUNT')}
                 </button>
               </div>
             </form>

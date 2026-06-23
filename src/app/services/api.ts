@@ -59,6 +59,23 @@ export const api = {
     return response.data;
   },
 
+  requestOTP: async (phone: string) => {
+    const response = await axios.post(`${API_BASE_URL}/users/request-otp`, { phone });
+    return response.data;
+  },
+
+  verifyOTP: async (phone: string, code: string, name?: string, email?: string) => {
+    const response = await axios.post(`${API_BASE_URL}/users/verify-otp`, { phone, code, name, email });
+    if (response.data.token && response.data.user) {
+      sessionStorage.setItem('token', response.data.token);
+      sessionStorage.setItem('user', JSON.stringify(response.data.user));
+      sessionStorage.setItem('userId', response.data.user.id || response.data.user._id);
+      sessionStorage.setItem('userName', response.data.user.name);
+      await api.mergeCart();
+    }
+    return response.data;
+  },
+
   getConfig: async () => {
     const response = await axios.get(`${API_BASE_URL}/config`);
     return response.data;
@@ -257,6 +274,24 @@ export const api = {
     return Array.isArray(response.data) ? response.data : [];
   },
 
+  createAdminUser: async (userData: any) => {
+    await ensureAuth();
+    const response = await axios.post(`${API_BASE_URL}/admin/users`, userData);
+    return response.data;
+  },
+
+  updateAdminUser: async (userId: string, userData: any) => {
+    await ensureAuth();
+    const response = await axios.put(`${API_BASE_URL}/admin/users/${userId}`, userData);
+    return response.data;
+  },
+
+  deleteAdminUser: async (userId: string) => {
+    await ensureAuth();
+    const response = await axios.delete(`${API_BASE_URL}/admin/users/${userId}`);
+    return response.data;
+  },
+
   createProduct: async (productData: any) => {
     await ensureAuth();
     const response = await axios.post(`${API_BASE_URL}/products`, productData);
@@ -314,6 +349,26 @@ export const api = {
 
   verifyRazorpayPayment: async (paymentData: any) => {
     const response = await axios.post(`${API_BASE_URL}/payment/verify`, paymentData);
+    return response.data;
+  },
+
+  // --- Shiprocket Integration ---
+  exportShiprocketOrders: async (date?: string) => {
+    await ensureAuth();
+    const response = await axios.get(`${API_BASE_URL}/admin/orders/export-shiprocket`, {
+      params: { date },
+      responseType: 'blob'
+    });
+    return response.data;
+  },
+
+  importShiprocketReport: async (file: File) => {
+    await ensureAuth();
+    const formData = new FormData();
+    formData.append('report', file);
+    const response = await axios.post(`${API_BASE_URL}/admin/orders/import-shiprocket`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
     return response.data;
   }
 };

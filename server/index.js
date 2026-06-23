@@ -1,5 +1,7 @@
 import express from 'express';
 import Razorpay from 'razorpay';
+import multer from 'multer';
+import ExcelJS from 'exceljs';
 import crypto from 'crypto';
 import cors from 'cors';
 import dotenv from 'dotenv';
@@ -41,6 +43,70 @@ const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(express.json());
+
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Shiprocket Template Constants
+const SHIPROCKET_COLUMNS = [
+  { key: "orderId", header: "*Order Id" },
+  { key: "orderDate", header: "Order Date (DD-MM-YYYY) (Optional)" },
+  { key: "verified", header: "Verified Order (Yes/No) (Optional)" },
+  { key: "mobile", header: "*Buyer's Mobile No." },
+  { key: "firstName", header: "*Buyer's First Name" },
+  { key: "lastName", header: "Buyer's Last Name (Optional)" },
+  { key: "shipAddress", header: "*Shipping Complete Address" },
+  { key: "landmark", header: "Shipping Address Landmark (Optional)" },
+  { key: "pincode", header: "*Shipping Address Pincode" },
+  { key: "city", header: "*Shipping Address City" },
+  { key: "state", header: "*Shipping Address State" },
+  { key: "country", header: "*Shipping Address Country" },
+  { key: "email", header: "Email (Optional)" },
+  { key: "altMobile", header: "Buyer's Alternate Mobile Number (Optional)" },
+  { key: "companyName", header: "Buyer's Company Name (Optional)" },
+  { key: "gstin", header: "Buyer's GSTIN (Optional)" },
+  { key: "billAddress", header: "Billing Complete Address (Optional)" },
+  { key: "billLandmark", header: "Billing Landmark (Optional)" },
+  { key: "billPincode", header: "Billing Pincode (Optional)" },
+  { key: "billCity", header: "Billing City (Optional)" },
+  { key: "billState", header: "Billing State (Optional)" },
+  { key: "billCountry", header: "Billing Country (Optional)" },
+  { key: "notify", header: "Send Notification (Yes/No) (Optional)" },
+  { key: "pickupId", header: "Pickup Address Id (Optional)" },
+  { key: "channel", header: "*Order Channel" },
+  { key: "payment", header: "*Payment Method (COD/Prepaid)" },
+  { key: "productName", header: "*Product Name" },
+  { key: "sku", header: "*Master SKU" },
+  { key: "qty", header: "*Product Quantity" },
+  { key: "price", header: "*Per Unit Price in INR (Inclusive of Tax)" },
+  { key: "partialCOD", header: "*Partial COD (Yes/No)" },
+  { key: "paidAmount", header: "Paid Amount (Rs.)" },
+  { key: "productDisc", header: "Product Discount (Per Unit Item) (Optional)" },
+  { key: "coupon", header: "Coupon (Optional)" },
+  { key: "hsn", header: "HSN Code (Optional)" },
+  { key: "taxRate", header: "Tax Rate(percentage) (Optional)" },
+  { key: "shippingChg", header: "Shipping Charges (Per Order) (Optional)" },
+  { key: "giftWrapChg", header: "Gift Wrap Charges (Per Order) (Optional)" },
+  { key: "txnFee", header: "Transaction Fee (Per Order) (Optional)" },
+  { key: "totalDisc", header: "Total Discount (Per Order) (Optional)" },
+  { key: "orderTag", header: "Order Tag (Optional)" },
+  { key: "containsDocs", header: "*Contain Documents (Yes/No)" },
+  { key: "reseller", header: "Reseller Name (Optional)" },
+  { key: "weight", header: "*Weight Of Shipment (kg)" },
+  { key: "length", header: "*Length (cm)" },
+  { key: "breadth", header: "*Breadth (cm)" },
+  { key: "height", header: "*Height (cm)" },
+  { key: "packageCount", header: "Package Count (Optional)" },
+  { key: "courierId", header: "Courier ID (Optional)" },
+];
+
+const SHIPROCKET_GROUPS = [
+  { start: 1, end: 3, label: "", fill: "FFFFFFFF" },
+  { start: 4, end: 23, label: "Buyer's Details", fill: "FFF4FFE0" },
+  { start: 24, end: 24, label: "Pickup Details", fill: "FFFFF4F4" },
+  { start: 25, end: 43, label: "Order Details", fill: "FFD7EDFF" },
+  { start: 44, end: 48, label: "Package Details", fill: "FFE4FFF3" },
+  { start: 49, end: 49, label: "Courier Details", fill: "FFFFF1C7" },
+];
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -101,6 +167,7 @@ async function seedInitialData() {
         password: hashedPassword,
         phone: '9999988888',
         isAdmin: false,
+        role: 'customer',
         isVerified: true
       });
       await defaultCustomer.save();
@@ -122,10 +189,30 @@ async function seedInitialData() {
         password: adminHashedPassword,
         phone: '0000000000',
         isAdmin: true,
+        role: 'admin',
         isVerified: true
       });
       await defaultAdmin.save();
       console.log('👑 Admin user admin@richgirl.com seeded successfully.');
+    }
+
+    // Seed Employee User
+    const employeeEmail = 'employee@richgirl.com';
+    const existingEmployee = await User.findOne({ email: employeeEmail });
+    if (!existingEmployee) {
+      const salt = await bcrypt.genSalt(10);
+      const employeeHashedPassword = await bcrypt.hash('employeepassword123', salt);
+      const defaultEmployee = new User({
+        name: 'RichGirl Employee',
+        email: employeeEmail,
+        password: employeeHashedPassword,
+        phone: '1111111111',
+        isAdmin: false,
+        role: 'employee',
+        isVerified: true
+      });
+      await defaultEmployee.save();
+      console.log('👷 Employee user employee@richgirl.com seeded successfully.');
     }
     // Seed Categories (synchronized with seedCategories.js)
     const categoriesToSeed = [
@@ -223,7 +310,7 @@ app.get('/api/products/:id', async (req, res) => {
 
 // --- Admin AI Description Generator ---
 app.post('/api/admin/generate-description', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
     const { image } = req.body;
     if (!image) return res.status(400).json({ message: 'Image URL is required' });
@@ -621,15 +708,128 @@ app.post('/api/orders', requireAuth, async (req, res) => {
   }
 });
 
-// --- Users (Real Login/Auth) ---
+// --- Users (OTP & Login) ---
+
+// Request OTP via WhatsApp/SMS
+app.post('/api/users/request-otp', async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!phone) return res.status(400).json({ message: 'Phone number is required' });
+
+    // Find or create user stub
+    let user = await User.findOne({ phone });
+    if (!user) {
+      // We'll create a temporary stub if it's a new registration attempt
+      // Or just signal that it's a new user
+      console.log(`New user registration attempt for phone: ${phone}`);
+    }
+
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    if (user) {
+      user.otp = { code: otpCode, expiresAt };
+      await user.save();
+    } else {
+      // For registration flow, we don't save the user yet to avoid spamming the DB with stubs
+      // Instead, we'll verify the OTP first. 
+      // But for simplicity in this implementation, we'll use a cache or temporary collection if needed.
+      // For now, let's create the user with a placeholder name
+      user = new User({
+        name: 'New User',
+        phone,
+        otp: { code: otpCode, expiresAt },
+        isVerified: false
+      });
+      await user.save();
+    }
+
+    // Send via WhatsApp
+    const message = `Your RichGirl verification code is: ${otpCode}. Valid for 10 minutes.`;
+    await sendWhatsAppMessage(phone, message);
+
+    res.json({ message: 'OTP sent successfully', isNewUser: user.name === 'New User' });
+  } catch (error) {
+    console.error('OTP request error:', error);
+    res.status(500).json({ message: 'Failed to send OTP', error: error.message });
+  }
+});
+
+// Verify OTP
+app.post('/api/users/verify-otp', async (req, res) => {
+  try {
+    const { phone, code, name, email } = req.body;
+    if (!phone || !code) return res.status(400).json({ message: 'Phone and code are required' });
+
+    const user = await User.findOne({ phone });
+    if (!user || !user.otp || user.otp.code !== code) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    if (user.otp.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    // Mark as verified
+    user.isVerified = true;
+    user.otp = undefined; // Clear OTP
+
+    // Update profile if registering
+    if (name) user.name = name;
+    if (email && email.trim() !== '') {
+      // Check if email is already taken by ANOTHER user
+      const emailUser = await User.findOne({ email: email.toLowerCase(), _id: { $ne: user._id } });
+      if (emailUser) {
+        return res.status(400).json({ message: 'This email is already linked to another account' });
+      }
+      user.email = email.toLowerCase();
+    }
+
+    await user.save();
+
+    // Ensure cart exists
+    let cart = await Cart.findOne({ userId: user._id });
+    if (!cart) {
+      cart = new Cart({ userId: user._id, items: [] });
+      await cart.save();
+    }
+
+    const token = generateToken(user);
+    res.json({
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        role: user.role || (user.isAdmin ? 'admin' : 'customer'),
+        isVerified: user.isVerified
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'OTP verification failed', error: error.message });
+  }
+});
+
 app.post('/api/users/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, phone, password } = req.body;
 
-    const user = await User.findOne({ email });
+    let user;
+    if (email) {
+      user = await User.findOne({ email });
+    } else if (phone) {
+      user = await User.findOne({ phone });
+    }
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    if (!password) {
+      return res.status(400).json({ message: 'Password is required for this login method' });
     }
 
 
@@ -648,7 +848,7 @@ app.post('/api/users/login', async (req, res) => {
 
     // Generate JWT token
     const token = generateToken(user);
-    res.json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, isVerified: user.isVerified } });
+    res.json({ token, user: { id: user._id, name: user.name, email: user.email, isAdmin: user.isAdmin, role: user.role || (user.isAdmin ? 'admin' : 'customer'), isVerified: user.isVerified } });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -658,9 +858,18 @@ app.post('/api/users/register', async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User already exists with this email' });
+    if (email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ message: 'User already exists with this email' });
+      }
+    }
+
+    if (phone) {
+      const existingPhone = await User.findOne({ phone });
+      if (existingPhone) {
+        return res.status(400).json({ message: 'User already exists with this phone number' });
+      }
     }
 
     const salt = await bcrypt.genSalt(10);
@@ -827,7 +1036,7 @@ app.post('/api/payment/verify', requireAuth, async (req, res) => {
 // --- Admin ---
 app.get('/api/admin/stats', requireAuth, async (req, res) => {
   // Only admin can access
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
   try {
     const totalProducts = await Product.countDocuments();
     const lowStock = await Product.countDocuments({ inStock: false });
@@ -843,7 +1052,7 @@ app.get('/api/admin/stats', requireAuth, async (req, res) => {
 });
 
 app.get('/api/admin/orders', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
     const orders = await Order.find().sort({ createdAt: -1 }).populate('userId', 'name email');
     const formatted = orders.map(o => ({
@@ -858,12 +1067,285 @@ app.get('/api/admin/orders', requireAuth, async (req, res) => {
   }
 });
 
+// --- Shiprocket Integration ---
+
+app.get('/api/admin/orders/export-shiprocket', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { date } = req.query;
+    let query = { shippingStatus: { $in: ['Processing', 'Confirmed'] } };
+
+    if (date) {
+      const targetDate = new Date(date);
+      const start = new Date(targetDate); start.setHours(0, 0, 0, 0);
+      const end = new Date(targetDate); end.setHours(23, 59, 59, 999);
+      query.createdAt = { $gte: start, $lte: end };
+    }
+
+    const orders = await Order.find(query).lean().sort({ createdAt: -1 });
+
+    if (orders.length === 0) {
+      return res.status(404).json({ message: 'No pending orders found to export.' });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Order Sheet");
+    sheet.columns = SHIPROCKET_COLUMNS.map(() => ({ width: 15 }));
+
+    // Grouped Headers
+    const row1 = sheet.getRow(1);
+    row1.height = 30;
+    SHIPROCKET_GROUPS.forEach((g) => {
+      if (g.end > g.start) sheet.mergeCells(1, g.start, 1, g.end);
+      const cell = sheet.getCell(1, g.start);
+      cell.value = g.label;
+      cell.font = { name: "Calibri", size: 14, bold: true };
+      cell.alignment = { horizontal: "center", vertical: "center" };
+      for (let c = g.start; c <= g.end; c++) {
+        sheet.getCell(1, c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: g.fill } };
+      }
+    });
+
+    // Field Headers
+    const row2 = sheet.getRow(2);
+    row2.height = 40;
+    SHIPROCKET_COLUMNS.forEach((col, idx) => {
+      const cell = row2.getCell(idx + 1);
+      cell.value = col.header;
+      cell.font = { name: "Calibri", size: 11, bold: true };
+      cell.alignment = { horizontal: "center", vertical: "center", wrapText: true };
+      cell.border = { top: { style: 'thin' }, left: { style: 'thin' }, bottom: { style: 'thin' }, right: { style: 'thin' } };
+    });
+
+    const fmtDate = (d) => {
+      if (!d) return "";
+      const dt = new Date(d);
+      return `${String(dt.getDate()).padStart(2, "0")}-${String(dt.getMonth() + 1).padStart(2, "0")}-${dt.getFullYear()}`;
+    };
+    const splitName = (name = "") => {
+      const parts = name.trim().split(" ");
+      return { first: parts[0] || "Customer", last: parts.slice(1).join(" ") || "" };
+    };
+
+    let rowIdx = 3;
+    for (const order of orders) {
+      try {
+        const addr = order.shippingAddress;
+        if (!addr) continue; // Skip bad orders
+
+        const { first, last } = splitName(addr.fullName);
+        const isCoD = order.payment ? order.payment.method === "COD" : true;
+
+        const userDoc = order.userId ? await User.findById(order.userId, { email: 1 }).lean() : null;
+        const customerEmail = userDoc?.email || "";
+
+        for (const product of order.products) {
+          const rowData = {
+            orderId: order.orderId,
+            orderDate: fmtDate(order.createdAt),
+            verified: "Yes",
+            mobile: String(addr.phone || ""),
+            firstName: first,
+            lastName: last,
+            shipAddress: String(addr.street || ""),
+            pincode: String(addr.zip || ""),
+            city: addr.city || "",
+            state: addr.state || "",
+            country: addr.country || "India",
+            email: customerEmail,
+            billAddress: String(addr.street || ""),
+            billPincode: String(addr.zip || ""),
+            billCity: addr.city || "",
+            billState: addr.state || "",
+            billCountry: addr.country || "India",
+            notify: "Yes",
+            channel: "CUSTOM",
+            payment: isCoD ? "COD" : "Prepaid",
+            productName: `${product.name} (${product.size} - ${product.color})`,
+            sku: String(product.productId || product._id || "N/A"),
+            qty: product.quantity || 1,
+            price: product.priceAtTimeOfPurchase || 0,
+            partialCOD: "No",
+            paidAmount: isCoD ? 0 : (order.totalAmount || 0),
+            shippingChg: order.deliveryCharge || 0,
+            totalDisc: order.discount || 0,
+            containsDocs: "No",
+            weight: 0.5,
+            length: 20,
+            breadth: 15,
+            height: 5,
+            packageCount: 1
+          };
+
+          const row = sheet.getRow(rowIdx++);
+          SHIPROCKET_COLUMNS.forEach((col, idx) => {
+            row.getCell(idx + 1).value = rowData[col.key] ?? "";
+            row.getCell(idx + 1).font = { name: "Calibri", size: 11 };
+            row.getCell(idx + 1).alignment = { horizontal: "center" };
+          });
+        }
+      } catch (orderErr) {
+        console.error(`Skipping order ${order.orderId} due to error:`, orderErr.message);
+      }
+    }
+
+    const dateStr = new Date().toISOString().split("T")[0];
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=shiprocket_orders_${dateStr}.xlsx`);
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Shiprocket Export Final Error:', error);
+    res.status(500).json({ message: 'Export failed: ' + error.message });
+  }
+});
+
+app.post('/api/admin/orders/import-shiprocket', requireAuth, upload.single('report'), async (req, res) => {
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
+  try {
+    if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
+
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+    const sheet = workbook.getWorksheet(1);
+
+    let headers = [];
+    sheet.getRow(1).eachCell((cell, colNumber) => {
+      headers[colNumber] = cell.value?.toString().toLowerCase().trim();
+    });
+
+    let orderIdIdx = headers.findIndex(h => h?.includes('order id') || h?.includes('order_id'));
+    let awbIdx = headers.findIndex(h => h?.includes('awb') || h?.includes('tracking') || h?.includes('waybill'));
+
+    if (orderIdIdx === -1 || awbIdx === -1) {
+      // Try row 2 if row 1 headers were not found (sometimes row 1 is section labels)
+      headers = [];
+      sheet.getRow(2).eachCell((cell, colNumber) => {
+        headers[colNumber] = cell.value?.toString().toLowerCase().trim();
+      });
+      orderIdIdx = headers.findIndex(h => h?.includes('order id') || h?.includes('order_id'));
+      awbIdx = headers.findIndex(h => h?.includes('awb') || h?.includes('tracking') || h?.includes('waybill'));
+    }
+
+    if (orderIdIdx === -1 || awbIdx === -1) {
+      return res.status(400).json({ message: 'Could not find "Order Id" and "AWB Number" columns in the file' });
+    }
+
+    let successCount = 0;
+    const errors = [];
+    const updatePromises = [];
+
+    sheet.eachRow((row, rowNumber) => {
+      if (rowNumber <= 2) return; // Skip headers
+      const orderId = row.getCell(orderIdIdx).value?.toString().trim();
+      const trackingId = row.getCell(awbIdx).value?.toString().trim();
+
+      if (orderId && trackingId) {
+        updatePromises.push(
+          Order.findOneAndUpdate(
+            { orderId: orderId },
+            { trackingId, shippingStatus: 'Shipped' },
+            { new: true }
+          ).then(updated => {
+            if (updated) successCount++;
+            else errors.push(`Order ID ${orderId} not found in database`);
+          })
+        );
+      }
+    });
+
+    await Promise.all(updatePromises);
+    res.json({ message: 'Import completed', successCount, errors });
+  } catch (error) {
+    res.status(500).json({ message: 'Import failed', error: error.message });
+  }
+});
+
 app.get('/api/admin/users', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
   try {
     const users = await User.find().sort({ createdAt: -1 });
     const formatted = users.map(u => ({ ...u.toObject(), id: u._id }));
     res.json(formatted);
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Admin: Create User (e.g. Employee)
+app.post('/api/admin/users', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { name, email, phone, password, role } = req.body;
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ $or: [{ email }, { phone }] });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists with this email or phone' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = password ? await bcrypt.hash(password, salt) : undefined;
+
+    const newUser = new User({
+      name,
+      email,
+      phone,
+      password: hashedPassword,
+      role: role || 'employee',
+      isAdmin: role === 'admin',
+      isVerified: true // Admin created accounts are pre-verified
+    });
+
+    await newUser.save();
+
+    // Create cart for the new user
+    const newCart = new Cart({ userId: newUser._id, items: [] });
+    await newCart.save();
+
+    res.status(201).json({ message: 'User created successfully', id: newUser._id });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Admin: Update User
+app.put('/api/admin/users/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+  try {
+    const { name, email, phone, role, password } = req.body;
+    const user = await User.findById(req.params.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phone) user.phone = phone;
+    if (role) {
+      user.role = role;
+      user.isAdmin = role === 'admin';
+    }
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+    await user.save();
+    res.json({ message: 'User updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+});
+
+// Admin: Delete User
+app.delete('/api/admin/users/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
+  try {
+    await User.findByIdAndDelete(req.params.id);
+    // Also delete their cart
+    await Cart.findOneAndDelete({ userId: req.params.id });
+    res.json({ message: 'User deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
   }
@@ -878,9 +1360,9 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// --- Product Creation (Admin) ---
+// --- Product Creation (Admin & Employee) ---
 app.post('/api/products', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
     const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
 
@@ -953,9 +1435,9 @@ app.post('/api/products', requireAuth, async (req, res) => {
   }
 });
 
-// Update Product (Admin)
+// Update Product (Admin & Employee)
 app.put('/api/products/:id', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
     const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
     const product = await Product.findById(req.params.id);
@@ -1007,9 +1489,9 @@ app.put('/api/products/:id', requireAuth, async (req, res) => {
   }
 });
 
-// Delete Product (Admin)
+// Delete Product (Admin & Employee)
 app.delete('/api/products/:id', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
     await Product.findByIdAndDelete(req.params.id);
     res.json({ message: 'Product deleted successfully' });
@@ -1020,7 +1502,7 @@ app.delete('/api/products/:id', requireAuth, async (req, res) => {
 
 // --- Admin Order Update ---
 app.put('/api/admin/orders/:id', requireAuth, async (req, res) => {
-  if (!req.user.isAdmin) return res.status(403).json({ message: 'Forbidden' });
+  if (req.user.role !== 'admin') return res.status(403).json({ message: 'Forbidden' });
   try {
     const { shippingStatus, trackingId, estimatedDelivery } = req.body;
     const order = await Order.findById(req.params.id);

@@ -19,6 +19,7 @@ export function requireAuth(req, res, next) {
           id: user._id,
           email: user.email,
           isAdmin: !!user.isAdmin,
+          role: user.role || (user.isAdmin ? 'admin' : 'customer'),
           isVerified: !!user.isVerified
         };
         next();

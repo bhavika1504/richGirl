@@ -4,8 +4,10 @@ import { api } from '../services/api';
 interface UserType {
   id: string;
   name: string;
-  email: string;
+  email?: string;
+  phone?: string;
   isAdmin: boolean;
+  role: 'admin' | 'employee' | 'customer';
   isVerified: boolean;
 }
 
@@ -14,6 +16,8 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email?: string, password?: string) => Promise<any>;
+  requestOTP: (phone: string) => Promise<any>;
+  verifyOTP: (phone: string, code: string, name?: string, email?: string) => Promise<any>;
   register: (name: string, email: string, phone: string, password: string) => Promise<any>;
   logout: () => void;
   setUser: React.Dispatch<React.SetStateAction<UserType | null>>;
@@ -62,6 +66,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return data;
   };
 
+  const requestOTP = async (phone: string) => {
+    return await api.requestOTP(phone);
+  };
+
+  const verifyOTP = async (phone: string, code: string, name?: string, email?: string) => {
+    const data = await api.verifyOTP(phone, code, name, email);
+    if (data.token && data.user) {
+      setToken(data.token);
+      setUser(data.user);
+      sessionStorage.setItem('token', data.token);
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+      sessionStorage.setItem('userId', data.user.id || data.user._id);
+      sessionStorage.setItem('userName', data.user.name);
+    }
+    return data;
+  };
+
   const register = async (name: string, email: string, phone: string, password: string) => {
     const data = await api.register(name, email, phone, password);
     // Note: Registration might not log the user in immediately if email verification is required,
@@ -80,7 +101,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, setUser }}>
+    <AuthContext.Provider value={{ user, token, loading, login, requestOTP, verifyOTP, register, logout, setUser }}>
       {children}
     </AuthContext.Provider>
   );

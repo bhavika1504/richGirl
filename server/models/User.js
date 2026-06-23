@@ -2,10 +2,11 @@ import mongoose from 'mongoose';
 
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String },
-  password: { type: String, required: true },
+  email: { type: String, unique: true, sparse: true }, // sparse allows multiple nulls
+  phone: { type: String, required: true, unique: true },
+  password: { type: String }, // Make password optional for OTP-only users
   isAdmin: { type: Boolean, default: false },
+  role: { type: String, enum: ['admin', 'employee', 'customer'], default: 'customer' },
   isVerified: { type: Boolean, default: false },
   addresses: [{
     fullName: String,

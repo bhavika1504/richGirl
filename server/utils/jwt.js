@@ -8,6 +8,7 @@ export function generateToken(user) {
     id: user._id || user.id,
     email: user.email,
     isAdmin: !!user.isAdmin,
+    role: user.role || (user.isAdmin ? 'admin' : 'customer'),
   };
   return jwt.sign(payload, secret, { expiresIn: '7d' });
 }

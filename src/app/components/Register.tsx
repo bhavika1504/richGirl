@@ -1,34 +1,64 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Link, useNavigate } from 'react-router';
-import { Mail, Lock, ArrowLeft, User, Phone, Loader2, Eye, EyeOff } from 'lucide-react';
+import { Mail, Lock, ArrowLeft, User, Phone, Loader2, MessageSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export function Register() {
   const navigate = useNavigate();
-  const { register } = useAuth();
+  const { requestOTP, verifyOTP } = useAuth();
+
+  const [step, setStep] = useState<'details' | 'verify'>('details');
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    password: ''
   });
-  const [showPassword, setShowPassword] = useState(false);
+  const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRequestOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccess('');
+
+    if (formData.phone.length < 10) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
     setLoading(true);
     try {
-      await register(formData.name, formData.email, formData.phone, formData.password);
-      setSuccess('Account created! Please check your server console logs for the email verification link.');
-      setFormData({ name: '', email: '', phone: '', password: '' });
+      await requestOTP(formData.phone);
+      setStep('verify');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to register account');
+      setError(err.response?.data?.message || 'Failed to send verification code');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyRegistration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const data = await verifyOTP(
+        formData.phone,
+        otpCode,
+        formData.name,
+        formData.email
+      );
+
+      setSuccess('Registraton successful!');
+      setTimeout(() => {
+        if (data.user?.isAdmin) navigate('/admin');
+        else navigate('/');
+      }, 1500);
+
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Invalid or expired code');
     } finally {
       setLoading(false);
     }
@@ -63,101 +93,139 @@ export function Register() {
               style={{ fontFamily: 'var(--font-body)' }}
               className="text-gray-500 text-sm"
             >
-              Create an account and discover timeless fashion
+              Verify your mobile to create a secure account
             </p>
           </div>
 
-          {error && (
-            <div className="mb-6 p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium">
-              {error}
-            </div>
-          )}
+          <AnimatePresence mode="wait">
+            {step === 'details' ? (
+              <motion.form
+                key="details-step"
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                className="space-y-4"
+                onSubmit={handleRequestOTP}
+              >
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium">
+                    {error}
+                  </div>
+                )}
 
-          {success && (
-            <div className="mb-6 p-3 bg-emerald-50 text-[var(--brand-dark-text)] text-sm rounded-xl text-center font-medium border border-emerald-100 animate-pulse">
-              {success}
-            </div>
-          )}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      required
+                      value={formData.name}
+                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                      className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
+                      placeholder="John Doe"
+                    />
+                  </div>
+                </div>
 
-          <form className="space-y-4" onSubmit={handleRegister}>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Full Name</label>
-              <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
-                  placeholder="John Doe"
-                />
-              </div>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="tel"
+                      required
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value.replace(/\D/g, '').slice(0, 10) })}
+                      className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
+                      placeholder="9876543210"
+                    />
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
-                  placeholder="name@example.com"
-                />
-              </div>
-            </div>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Email (Optional)</label>
+                  <div className="relative">
+                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
+                      placeholder="name@example.com"
+                    />
+                  </div>
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Phone Number</label>
-              <div className="relative">
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="tel"
-                  required
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
-                  placeholder="+91 98765 43210"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full h-12 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-xl pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all"
-                  placeholder="••••••••"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                <motion.button
+                  type="submit"
+                  disabled={loading}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-14 bg-[var(--brand-dark-text)] text-white rounded-2xl font-bold text-lg shadow-lg shadow-black/10 mt-6 flex items-center justify-center gap-2"
+                  style={{ fontFamily: 'var(--font-body)', opacity: loading ? 0.7 : 1 }}
                 >
-                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                </button>
-              </div>
-            </div>
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Continue to Verify'}
+                </motion.button>
+              </motion.form>
+            ) : (
+              <motion.form
+                key="verify-step"
+                initial={{ opacity: 0, x: 10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                className="space-y-6"
+                onSubmit={handleVerifyRegistration}
+              >
+                {error && (
+                  <div className="p-3 bg-red-50 text-red-500 text-sm rounded-xl text-center font-medium">
+                    {error}
+                  </div>
+                )}
+                {success && (
+                  <div className="p-3 bg-emerald-50 text-emerald-600 text-sm rounded-xl text-center font-medium border border-emerald-100">
+                    {success}
+                  </div>
+                )}
 
-            <motion.button
-              type="submit"
-              disabled={loading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full h-14 bg-[var(--brand-cta-green)] text-white rounded-2xl font-bold text-lg shadow-lg shadow-green-900/10 mt-6 flex items-center justify-center gap-2 cursor-pointer"
-              style={{ fontFamily: 'var(--font-body)', opacity: loading ? 0.7 : 1 }}
-            >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
-            </motion.button>
-          </form>
+                <div className="space-y-2">
+                  <label className="text-[10px] font-bold text-[var(--brand-dark-text)] ml-1 uppercase tracking-widest">Enter Verification Code</label>
+                  <div className="relative">
+                    <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      className="w-full h-14 bg-[var(--brand-alt-bg)] border border-[var(--brand-border)] rounded-2xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-[var(--brand-cta-green)]/20 focus:border-[var(--brand-cta-green)] transition-all text-center text-xl font-bold tracking-[8px]"
+                      placeholder="000000"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center px-1">
+                    <p className="text-[10px] text-gray-400">Verifying {formData.phone}</p>
+                    <button
+                      type="button"
+                      onClick={() => setStep('details')}
+                      className="text-[10px] font-bold text-[var(--brand-cta-green)] uppercase hover:underline"
+                    >
+                      Edit Info
+                    </button>
+                  </div>
+                </div>
+
+                <motion.button
+                  type="submit"
+                  disabled={loading || success !== ''}
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full h-14 bg-[var(--brand-cta-green)] text-white rounded-2xl font-bold text-lg shadow-lg shadow-green-900/10 flex items-center justify-center gap-2"
+                  style={{ fontFamily: 'var(--font-body)', opacity: loading ? 0.7 : 1 }}
+                >
+                  {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Complete Registration'}
+                </motion.button>
+              </motion.form>
+            )}
+          </AnimatePresence>
 
           <p className="text-center mt-8 text-sm text-gray-500">
             Already have an account?{' '}
