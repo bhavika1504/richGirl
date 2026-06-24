@@ -95,7 +95,7 @@ export function Hero() {
 
             {/* Content overlay - Max-width container to keep text centered/aligned */}
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-16 text-center lg:text-left">
+              <div className="w-full max-w-[1440px] mx-auto px-8 lg:px-16 text-left">
                 <div className="max-w-2xl">
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
@@ -115,10 +115,10 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mb-4 lg:mb-6 px-2 lg:px-0"
+                    className="mb-4 lg:mb-6"
                     style={{
                       fontFamily: 'var(--font-headline)',
-                      fontSize: 'clamp(22px, 5vw, 48px)',
+                      fontSize: 'clamp(26px, 5vw, 48px)',
                       lineHeight: '1.1',
                       color: 'white',
                       fontWeight: '600'
