@@ -6,27 +6,24 @@ import { Link } from 'react-router';
 const slides = [
   {
     id: 1,
-    image: 'https://images.unsplash.com/photo-1759840278361-f1adc75529a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1600',
-    title: 'New Indian Collection',
-    subtitle: 'Elegant kurtas & traditional sets'
+    image: '/assets/slider/indian.png',
+    title: 'Timeless Indian Elegance',
+    subtitle: 'Handcrafted ethnic wear for every occasion',
+    link: '/shop/indian'
   },
   {
     id: 2,
-    image: 'https://images.unsplash.com/photo-1659522761084-79196b64abe4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1600',
-    title: 'Western Essentials',
-    subtitle: 'Chic tops & contemporary styles'
+    image: '/assets/slider/western.png',
+    title: 'Modern Western Chic',
+    subtitle: 'Sophisticated styles for the modern woman',
+    link: '/shop/western'
   },
   {
     id: 3,
-    image: 'https://images.unsplash.com/photo-1708534246051-7f47b279e94b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1600',
-    title: 'Co-ord Collections',
-    subtitle: 'Perfectly paired outfits'
-  },
-  {
-    id: 4,
-    image: 'https://images.unsplash.com/photo-1597983073750-16f5ded1321f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&w=1600',
-    title: 'Premium Kurtis',
-    subtitle: 'Handpicked designs'
+    image: '/assets/slider/cord_set.png',
+    title: 'Luxury Co-ord Sets',
+    subtitle: 'Effortless elegance in perfectly paired silhouettes',
+    link: '/shop/western%20cord%20set'
   }
 ];
 
@@ -129,7 +126,7 @@ export function Hero() {
                   >
                     {slides[currentSlide].title}
                   </motion.h2>
-                  <Link to="/shop">
+                  <Link to={slides[currentSlide].link || '/shop'}>
                     <motion.div
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}

@@ -9,6 +9,7 @@ import { Profile } from './components/Profile';
 import { Login } from './components/Login';
 import { Register } from './components/Register';
 import { AdminDashboard } from './components/AdminDashboard';
+import { EmployeeDashboard } from './components/EmployeeDashboard';
 import { TrackOrder } from './components/TrackOrder';
 import { OrderSuccess } from './components/OrderSuccess';
 import { Verify } from './components/Verify';
@@ -47,13 +48,18 @@ export default function App() {
           } />
 
           <Route path="/admin" element={
-            <ProtectedRoute adminOnly>
+            <ProtectedRoute allowedRoles={['admin']}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
           <Route path="/admin/orders/:id" element={
-            <ProtectedRoute adminOnly>
+            <ProtectedRoute allowedRoles={['admin']}>
               <OrderDetail />
+            </ProtectedRoute>
+          } />
+          <Route path="/employee" element={
+            <ProtectedRoute allowedRoles={['employee', 'admin']}>
+              <EmployeeDashboard />
             </ProtectedRoute>
           } />
 

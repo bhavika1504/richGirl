@@ -33,7 +33,9 @@ export function Navbar() {
 
   const handleUserClick = () => {
     if (user) {
-      navigate('/profile');
+      if (user.role === 'admin') navigate('/admin');
+      else if (user.role === 'employee') navigate('/employee');
+      else navigate('/profile');
     } else {
       setIsAuthPromptOpen(true);
     }
@@ -171,7 +173,7 @@ export function Navbar() {
                   Account
                 </p>
                 <Link
-                  to="/profile"
+                  to={user?.role === 'admin' ? '/admin' : user?.role === 'employee' ? '/employee' : '/profile'}
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
                   style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}

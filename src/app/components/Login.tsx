@@ -43,8 +43,10 @@ export function Login() {
     setLoading(true);
     try {
       const data = await verifyOTP(phone, otpCode);
-      if (data.user?.isAdmin || data.user?.role === 'employee') {
+      if (data.user?.role === 'admin') {
         navigate('/admin');
+      } else if (data.user?.role === 'employee') {
+        navigate('/employee');
       } else {
         navigate('/');
       }
@@ -61,8 +63,10 @@ export function Login() {
     setLoading(true);
     try {
       const data = await login(email, password);
-      if (data.user?.isAdmin || data.user?.role === 'employee') {
+      if (data.user?.role === 'admin') {
         navigate('/admin');
+      } else if (data.user?.role === 'employee') {
+        navigate('/employee');
       } else {
         navigate('/');
       }

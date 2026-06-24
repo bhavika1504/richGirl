@@ -51,7 +51,6 @@ const STANDARD_COLORS = [
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const isEmployee = user?.role === 'employee';
 
   const STATUS_COLORS: Record<string, string> = {
     Processing: 'bg-yellow-50 text-yellow-600',
@@ -62,7 +61,7 @@ export function AdminDashboard() {
     Cancelled: 'bg-red-50 text-red-600',
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations' | 'reports'>(isEmployee ? 'products' : 'overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations' | 'reports'>('overview');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -604,12 +603,12 @@ export function AdminDashboard() {
 
         <nav className="flex-1 px-4 space-y-2">
           {[
-            { id: 'overview', label: 'Overview', icon: BarChart3, hidden: isEmployee },
-            { id: 'products', label: 'Products', icon: Package, hidden: false },
-            { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
-            { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
-            { id: 'reports', label: 'Reports', icon: FileText, hidden: isEmployee },
-          ].filter(item => !item.hidden).map((item) => (
+            { id: 'overview', label: 'Overview', icon: BarChart3 },
+            { id: 'products', label: 'Products', icon: Package },
+            { id: 'orders', label: 'Orders', icon: ShoppingBag },
+            { id: 'users', label: 'Users', icon: Users },
+            { id: 'reports', label: 'Reports', icon: FileText },
+          ].map((item) => (
             <button
               key={item.id}
               onClick={() => setActiveTab(item.id as any)}
@@ -639,12 +638,12 @@ export function AdminDashboard() {
       {/* Mobile Bottom Tab Bar */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex lg:hidden z-40 safe-area-pb">
         {[
-          { id: 'overview', label: 'Overview', icon: BarChart3, hidden: isEmployee },
-          { id: 'products', label: 'Products', icon: Package, hidden: false },
-          { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
-          { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
-          { id: 'reports', label: 'Reports', icon: FileText, hidden: isEmployee },
-        ].filter(item => !item.hidden).map((item) => (
+          { id: 'overview', label: 'Overview', icon: BarChart3 },
+          { id: 'products', label: 'Products', icon: Package },
+          { id: 'orders', label: 'Orders', icon: ShoppingBag },
+          { id: 'users', label: 'Users', icon: Users },
+          { id: 'reports', label: 'Reports', icon: FileText },
+        ].map((item) => (
           <button
             key={item.id}
             onClick={() => setActiveTab(item.id as any)}

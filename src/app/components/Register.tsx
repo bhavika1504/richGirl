@@ -53,7 +53,8 @@ export function Register() {
 
       setSuccess('Registraton successful!');
       setTimeout(() => {
-        if (data.user?.isAdmin || data.user?.role === 'employee') navigate('/admin');
+        if (data.user?.role === 'admin') navigate('/admin');
+        else if (data.user?.role === 'employee') navigate('/employee');
         else navigate('/');
       }, 1500);
 

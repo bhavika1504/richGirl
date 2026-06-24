@@ -1,5 +1,6 @@
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router';
+import { useEffect } from 'react';
 import {
   ArrowLeft,
   Settings,
@@ -18,6 +19,14 @@ import { useAuth } from '../context/AuthContext';
 export function Profile() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    if (user?.role === 'employee') {
+      navigate('/employee');
+    } else if (user?.role === 'admin') {
+      navigate('/admin');
+    }
+  }, [user, navigate]);
 
   const menuItems = [
     { icon: Package, label: 'My Orders', description: 'Track, return or buy things again', route: '/profile/orders' },
