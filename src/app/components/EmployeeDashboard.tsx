@@ -418,7 +418,7 @@ export function EmployeeDashboard() {
                                                 </select>
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Heritage</label>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Type</label>
                                                 <select
                                                     value={newProduct.type} onChange={(e) => setNewProduct({ ...newProduct, type: e.target.value as any })}
                                                     className="w-full bg-[#F8FAF8] border-none rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-emerald-100 transition-all font-bold appearance-none cursor-pointer"
@@ -441,7 +441,7 @@ export function EmployeeDashboard() {
                                                 </div>
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Sweeten (Disc %)</label>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Discount %</label>
                                                 <input
                                                     type="number" value={newProduct.discount} onChange={(e) => setNewProduct({ ...newProduct, discount: e.target.value })}
                                                     className="w-full bg-[#F8FAF8] border-none rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-emerald-100 transition-all font-bold text-lg"
@@ -449,7 +449,7 @@ export function EmployeeDashboard() {
                                             </div>
                                         </div>
                                         <div className="p-4 bg-emerald-50 rounded-2xl flex items-center justify-between">
-                                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Final Client Price</span>
+                                            <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Final Price</span>
                                             <span className="text-xl font-bold text-emerald-700">₹{calculateNetPrice().toLocaleString()}</span>
                                         </div>
                                     </div>
@@ -511,7 +511,7 @@ export function EmployeeDashboard() {
                                                         updated[szIdx].variants.push({ color: '', colorLabel: '', stock: 0 });
                                                         setNewProduct({ ...newProduct, sizes: updated });
                                                     }} className="flex items-center gap-1 text-[10px] font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors uppercase">
-                                                        <Plus className="w-3 h-3" /> Add Variant
+                                                        <Plus className="w-3 h-3" /> Add Color
                                                     </button>
                                                 </div>
 
@@ -526,7 +526,7 @@ export function EmployeeDashboard() {
                                                                 }}
                                                                 className="w-full bg-white border border-gray-100 rounded-lg py-2 px-3 text-xs font-bold"
                                                             >
-                                                                <option value="">Base Tone</option>
+                                                                <option value="">Base Color</option>
                                                                 {STANDARD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
                                                             </select>
                                                             <input
