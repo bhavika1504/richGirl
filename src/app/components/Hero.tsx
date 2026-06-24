@@ -93,18 +93,18 @@ export function Hero() {
             {/* Dark overlay */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-transparent"></div>
 
-            {/* Content overlay - Max-width container to keep text centered/aligned */}
-            <div className="absolute inset-0 flex items-center">
+            {/* Content overlay */}
+            <div className="absolute inset-0 flex items-end lg:items-center pb-8 lg:pb-0">
               <div className="w-full max-w-[1440px] mx-auto px-8 lg:px-16 text-left">
                 <div className="max-w-2xl">
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="mb-1 lg:mb-2 uppercase tracking-wider"
+                    className="mb-0.5 lg:mb-2 uppercase tracking-wider"
                     style={{
                       fontFamily: 'var(--font-body)',
-                      fontSize: 'clamp(11px, 2vw, 12px)',
+                      fontSize: 'clamp(10px, 2vw, 12px)',
                       color: 'var(--brand-cta-green)',
                       fontWeight: '600'
                     }}
@@ -115,11 +115,11 @@ export function Hero() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="mb-4 lg:mb-6"
+                    className="mb-3 lg:mb-6"
                     style={{
                       fontFamily: 'var(--font-headline)',
-                      fontSize: 'clamp(26px, 5vw, 48px)',
-                      lineHeight: '1.1',
+                      fontSize: 'clamp(22px, 5vw, 48px)',
+                      lineHeight: '1.2',
                       color: 'white',
                       fontWeight: '600'
                     }}
@@ -131,12 +131,12 @@ export function Hero() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.5 }}
-                      className="px-6 lg:px-8 py-2.5 lg:py-3 text-white transition-all duration-300 inline-block"
+                      className="px-6 lg:px-8 py-2 lg:py-3 text-white transition-all duration-300 inline-block"
                       style={{
                         backgroundColor: 'var(--brand-cta-green)',
                         borderRadius: '28px',
                         fontFamily: 'var(--font-body)',
-                        fontSize: 'clamp(13px, 2vw, 14px)',
+                        fontSize: '13px',
                         fontWeight: '500',
                         textAlign: 'center'
                       }}
