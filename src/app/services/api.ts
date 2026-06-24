@@ -325,6 +325,11 @@ export const api = {
     return response.data;
   },
 
+  generateAIDescription: async (prompt: string) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/generate-description`, { prompt });
+    return response.data;
+  },
+
   // --- Addresses ---
   getAddresses: async () => {
     const response = await axios.get(`${API_BASE_URL}/users/addresses`);

@@ -64,7 +64,7 @@ export function EmployeeDashboard() {
         try {
             setLoading(true);
             const [productsData, categoriesData] = await Promise.all([
-                api.getAllProducts(),
+                api.getProducts(),
                 api.getCategories()
             ]);
             setProducts(productsData);
