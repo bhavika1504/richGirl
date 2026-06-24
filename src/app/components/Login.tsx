@@ -43,7 +43,7 @@ export function Login() {
     setLoading(true);
     try {
       const data = await verifyOTP(phone, otpCode);
-      if (data.user?.isAdmin) {
+      if (data.user?.isAdmin || data.user?.role === 'employee') {
         navigate('/admin');
       } else {
         navigate('/');
@@ -61,7 +61,7 @@ export function Login() {
     setLoading(true);
     try {
       const data = await login(email, password);
-      if (data.user?.isAdmin) {
+      if (data.user?.isAdmin || data.user?.role === 'employee') {
         navigate('/admin');
       } else {
         navigate('/');
@@ -111,8 +111,8 @@ export function Login() {
             <button
               onClick={() => { setAuthMethod('phone'); setError(''); }}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${authMethod === 'phone'
-                  ? 'bg-white text-[var(--brand-dark-text)] shadow-sm'
-                  : 'text-gray-400'
+                ? 'bg-white text-[var(--brand-dark-text)] shadow-sm'
+                : 'text-gray-400'
                 }`}
             >
               Phone (OTP)
@@ -120,8 +120,8 @@ export function Login() {
             <button
               onClick={() => { setAuthMethod('email'); setError(''); }}
               className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider rounded-xl transition-all ${authMethod === 'email'
-                  ? 'bg-white text-[var(--brand-dark-text)] shadow-sm'
-                  : 'text-gray-400'
+                ? 'bg-white text-[var(--brand-dark-text)] shadow-sm'
+                : 'text-gray-400'
                 }`}
             >
               Email (Password)

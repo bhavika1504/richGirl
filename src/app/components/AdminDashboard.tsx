@@ -18,7 +18,11 @@ import {
   BarChart3,
   Trash2,
   PieChart as PieChartIcon,
+  FileText,
+  Download,
 } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { motion, AnimatePresence } from 'motion/react';
 import {
   BarChart,
@@ -58,7 +62,7 @@ export function AdminDashboard() {
     Cancelled: 'bg-red-50 text-red-600',
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations'>(isEmployee ? 'products' : 'overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'products' | 'orders' | 'users' | 'configurations' | 'reports'>(isEmployee ? 'products' : 'overview');
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -152,6 +156,76 @@ export function AdminDashboard() {
     } finally {
       setExportingShiprocket(false);
     }
+  };
+
+  const handleDownloadInvoice = (order: any) => {
+    const doc = new jsPDF();
+    const brandName = "RICH GIRL";
+
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text(brandName, 20, 25);
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("Premium Ethnic & Western Fusion", 20, 32);
+
+    doc.setFontSize(16);
+    doc.text("INVOICE", 150, 25);
+
+    doc.setFontSize(10);
+    doc.text(`Order ID: ${order.orderId}`, 150, 32);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleDateString()}`, 150, 38);
+
+    // Billing / Shipping
+    doc.setFont("helvetica", "bold");
+    doc.text("Bill To:", 20, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text(order.shippingAddress?.fullName || 'Customer', 20, 62);
+    doc.text(order.shippingAddress?.street || '', 20, 68);
+    doc.text(`${order.shippingAddress?.city}, ${order.shippingAddress?.state} - ${order.shippingAddress?.zip}`, 20, 74);
+    doc.text(`Phone: ${order.shippingAddress?.phone || ''}`, 20, 80);
+
+    // Table
+    const tableData = order.products.map((item: any) => [
+      item.name,
+      `${item.size} / ${item.color}`,
+      item.quantity,
+      `INR ${item.priceAtTimeOfPurchase.toLocaleString()}`,
+      `INR ${(item.quantity * item.priceAtTimeOfPurchase).toLocaleString()}`
+    ]);
+
+    autoTable(doc, {
+      startY: 95,
+      head: [['Product', 'Size/Color', 'Qty', 'Unit Price', 'Total']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] }
+    });
+
+    // Totals
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Subtotal:`, 140, finalY);
+    doc.text(`INR ${(order.totalAmount - (order.deliveryCharge || 0) + (order.discount || 0)).toLocaleString()}`, 175, finalY, { align: 'right' });
+
+    doc.text(`Delivery Charge:`, 140, finalY + 7);
+    doc.text(`INR ${(order.deliveryCharge || 0).toLocaleString()}`, 175, finalY + 7, { align: 'right' });
+
+    doc.text(`Discount:`, 140, finalY + 14);
+    doc.text(`- INR ${(order.discount || 0).toLocaleString()}`, 175, finalY + 14, { align: 'right' });
+
+    doc.setFontSize(14);
+    doc.text(`Total Paid:`, 140, finalY + 25);
+    doc.text(`INR ${(order.totalAmount || 0).toLocaleString()}`, 175, finalY + 25, { align: 'right' });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "italic");
+    doc.text("Thank you for shopping with Rich Girl!", 105, finalY + 45, { align: 'center' });
+
+    doc.save(`invoice_${order.orderId}.pdf`);
   };
 
   const handleImportShiprocket = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -534,6 +608,7 @@ export function AdminDashboard() {
             { id: 'products', label: 'Products', icon: Package, hidden: false },
             { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
             { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
+            { id: 'reports', label: 'Reports', icon: FileText, hidden: isEmployee },
           ].filter(item => !item.hidden).map((item) => (
             <button
               key={item.id}
@@ -568,6 +643,7 @@ export function AdminDashboard() {
           { id: 'products', label: 'Products', icon: Package, hidden: false },
           { id: 'orders', label: 'Orders', icon: ShoppingBag, hidden: isEmployee },
           { id: 'users', label: 'Users', icon: Users, hidden: isEmployee },
+          { id: 'reports', label: 'Reports', icon: FileText, hidden: isEmployee },
         ].filter(item => !item.hidden).map((item) => (
           <button
             key={item.id}
@@ -962,6 +1038,12 @@ export function AdminDashboard() {
                                 </span>
                               </td>
                               <td className="px-6 py-4 text-right">
+                                <button
+                                  onClick={() => handleDownloadInvoice(order)}
+                                  className="inline-flex items-center gap-1 text-[var(--brand-cta-green)] text-xs font-bold hover:underline cursor-pointer bg-[var(--brand-alt-bg)] px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--brand-mist-green)] mr-2"
+                                >
+                                  Invoice <Download className="w-3 h-3" />
+                                </button>
                                 <Link
                                   to={`/admin/orders/${order.id || order._id}`}
                                   className="inline-flex items-center gap-1 text-[var(--brand-cta-green)] text-xs font-bold hover:underline cursor-pointer bg-[var(--brand-alt-bg)] px-3 py-1.5 rounded-lg transition-all hover:bg-[var(--brand-mist-green)]"
@@ -1000,6 +1082,12 @@ export function AdminDashboard() {
                               </div>
                               <div className="flex items-center gap-3">
                                 <span className="text-sm font-bold text-gray-900">₹{order.totalAmount?.toLocaleString() || 0}</span>
+                                <button
+                                  onClick={() => handleDownloadInvoice(order)}
+                                  className="p-2 bg-[var(--brand-alt-bg)] rounded-lg text-[var(--brand-cta-green)]"
+                                >
+                                  <Download className="w-4 h-4" />
+                                </button>
                                 <Link
                                   to={`/admin/orders/${order.id || order._id}`}
                                   className="p-2 bg-[var(--brand-alt-bg)] rounded-lg text-[var(--brand-cta-green)]"
@@ -1097,6 +1185,79 @@ export function AdminDashboard() {
                         ))}
                     </div>
                   </>
+                )}
+
+                {activeTab === 'reports' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm">
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <h3 className="font-bold text-gray-900">Order Invoices</h3>
+                            <p className="text-xs text-gray-500 mt-1">Download official PDF invoices for customer orders.</p>
+                          </div>
+                          <FileText className="w-5 h-5 text-[var(--brand-cta-green)]" />
+                        </div>
+
+                        <div className="space-y-3 max-h-[450px] overflow-y-auto pr-2 custom-scrollbar">
+                          {orders.length > 0 ? orders.map(order => (
+                            <div key={order.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl hover:bg-gray-100 transition-colors">
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-gray-900 truncate">{order.orderId}</p>
+                                <p className="text-[10px] text-gray-500">{new Date(order.createdAt).toLocaleDateString()} • ₹{order.totalAmount?.toLocaleString()}</p>
+                              </div>
+                              <button
+                                onClick={() => handleDownloadInvoice(order)}
+                                className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-xl text-[10px] font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm flex-shrink-0"
+                              >
+                                <Download className="w-3 h-3 text-[var(--brand-cta-green)]" />
+                                PDF
+                              </button>
+                            </div>
+                          )) : (
+                            <div className="text-center py-10">
+                              <ShoppingBag className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+                              <p className="text-xs text-gray-400 font-bold">No orders found</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm flex flex-col">
+                        <div className="flex items-center justify-between mb-6">
+                          <div>
+                            <h3 className="font-bold text-gray-900">Revenue Metrics</h3>
+                            <p className="text-xs text-gray-500 mt-1">Weekly performance overview.</p>
+                          </div>
+                          <TrendingUp className="w-5 h-5 text-blue-500" />
+                        </div>
+                        <div className="flex-1 min-h-[250px] flex items-end">
+                          <ResponsiveContainer width="100%" height={220}>
+                            <LineChart data={getDailyRevenue()}>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F3F4F6" />
+                              <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#9CA3AF' }} hide />
+                              <Tooltip
+                                contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
+                                itemStyle={{ fontWeight: 'bold', color: '#10B981' }}
+                              />
+                              <Line type="monotone" dataKey="revenue" stroke="#10B981" strokeWidth={3} dot={{ r: 4, fill: '#10B981', strokeWidth: 2, stroke: '#fff' }} />
+                            </LineChart>
+                          </ResponsiveContainer>
+                        </div>
+                        <div className="mt-4 pt-4 border-t border-gray-50 grid grid-cols-2 gap-4">
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Total Sales</p>
+                            <p className="text-lg font-bold text-gray-900">₹{dbStats.totalRevenue?.toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Active Orders</p>
+                            <p className="text-lg font-bold text-[var(--brand-cta-green)]">{dbStats.activeOrders}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </Fragment>
