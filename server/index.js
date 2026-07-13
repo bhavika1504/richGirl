@@ -224,32 +224,29 @@ async function seedInitialData() {
       console.log('👷 Employee user employee@richgirl.com seeded successfully.');
     }
     // Seed Categories (synchronized with seedCategories.js)
+    // Deactivate all existing categories first so legacy ones disappear from frontend
+    await Category.updateMany({}, { isActive: false });
+
     const categoriesToSeed = [
-      { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
-      { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
-      { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
-      { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
-      { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
-      { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
-      { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
-      { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
-      { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
-      { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
-      { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
-      { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
-      { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
-      { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
+      { name: '3-Piece Suits', type: 'indian', slug: '3-piece-suits', image: '/assets/3PieceDress.jpg' },
+      { name: 'Cord sets', type: 'indian', slug: 'cord-sets-indian', image: '/assets/indianCordSet.jpg' },
+      { name: 'Tunics', type: 'indian', slug: 'tunics-indian', image: '/assets/tunic.jpg' },
+      { name: 'Kurtis', type: 'indian', slug: 'kurtis', image: '/assets/kurti.jpg' },
+      
+      { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
+      { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
+      { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/westernCordSet.jpg' }
     ];
-    await Category.deleteOne({ slug: 'jumpsuits' });
+
     for (const cat of categoriesToSeed) {
-      const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       await Category.findOneAndUpdate(
-        { slug },
+        { slug: cat.slug },
         {
           name: cat.name,
-          slug,
-          type: cat.type || 'western',
+          slug: cat.slug,
+          type: cat.type,
           image: cat.image,
+          isActive: true,
           displayOrder: 10
         },
         { upsert: true }

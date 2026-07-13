@@ -18,30 +18,20 @@ export function CategoryScroll() {
     fetchCategories();
   }, []);
 
-  const indianKeywords = [
-    'kurta', 'saree', 'anarkali', 'sharara', 'indian', 'salwar', 'lehenga',
-    '2-piece', '2 piece', '3-piece', '3 piece', 'cord set', 'tunic'
-  ];
-
-  const indianCategories = categories.filter(cat =>
-    indianKeywords.some(key => cat.name.toLowerCase().includes(key))
-  );
-
-  const westernCategories = categories.filter(cat =>
-    !indianKeywords.some(key => cat.name.toLowerCase().includes(key))
-  );
+  const indianCategories = categories.filter(cat => cat.type === 'indian');
+  const westernCategories = categories.filter(cat => cat.type === 'western');
 
   const CategoryRow = ({ title, items }: { title: string, items: any[] }) => (
-    <div className="mb-6 lg:mb-8 last:mb-0">
-      <div className="flex items-center justify-between mb-3 lg:mb-4 px-1 lg:px-0">
+    <div className="mb-6 lg:mb-10 last:mb-0">
+      <div className="flex flex-col items-center justify-center mb-4 lg:mb-6 px-1 lg:px-0 relative">
         <h3
-          className="text-sm lg:text-lg font-bold text-[var(--brand-dark-text)] uppercase tracking-wider"
+          className="text-base lg:text-xl font-bold text-[var(--brand-dark-text)] uppercase tracking-wider text-center"
           style={{ fontFamily: 'var(--font-headline)' }}
         >
           {title}
         </h3>
         {/* Swipe hint on mobile only */}
-        <span className="flex items-center gap-0.5 text-[10px] text-gray-400 font-medium lg:hidden">
+        <span className="flex items-center justify-center mt-1 gap-0.5 text-[10px] text-gray-400 font-medium lg:hidden">
           Swipe <ChevronRight className="w-3 h-3" />
         </span>
       </div>
@@ -49,7 +39,7 @@ export function CategoryScroll() {
         className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-12 px-4 lg:px-12 snap-x snap-mandatory"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
-        <div className="flex gap-3 lg:gap-4 min-w-max pb-2">
+        <div className="flex justify-center gap-4 lg:gap-8 min-w-max pb-2">
           {items.map((category, index) => (
             <Link
               key={index}

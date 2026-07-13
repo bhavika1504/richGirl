@@ -19,33 +19,16 @@ interface Product {
   };
 }
 
-function ProductCard({ 
-  product, 
-  index, 
-  badge 
-}: { 
-  product: Product; 
-  index: number; 
-  badge?: { text: string; className: string } 
-}) {
+// Format 1 Card (Arch Shape Top)
+function ProductCardFormat1({ product, index, badge }: { product: Product; index: number; badge?: { text: string; className: string } }) {
   const [isVisible, setIsVisible] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    if (cardRef.current) {
-      observer.observe(cardRef.current);
-    }
-
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) setIsVisible(true);
+    }, { threshold: 0.1 });
+    if (cardRef.current) observer.observe(cardRef.current);
     return () => observer.disconnect();
   }, []);
 
@@ -54,174 +37,140 @@ function ProductCard({
   return (
     <motion.div
       ref={cardRef}
-      initial={{ opacity: 0, y: 40 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.08 }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className="relative group"
+      transition={{ duration: 0.5, delay: index * 0.1 }}
+      className="group flex flex-col items-center cursor-pointer"
     >
-      <Link to={`/product/${product.id}`}>
-        <div
-          className="bg-white overflow-hidden relative border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-300"
-          style={{ borderRadius: '14px' }}
+      <Link to={`/product/${product.id}`} className="w-full flex flex-col items-center">
+        <div 
+          className="relative overflow-hidden w-full mb-4 shadow-sm group-hover:shadow-md transition-shadow duration-300"
+          style={{ aspectRatio: '3/4', borderRadius: '150px 150px 12px 12px', backgroundColor: '#f5f5f5' }}
         >
-          {/* Badge */}
           {badge && (
-            <span className={`absolute top-3 left-3 px-2.5 py-1 text-[9px] font-extrabold tracking-widest rounded-full uppercase z-10 shadow-sm ${badge.className}`} style={{ fontFamily: 'var(--font-body)' }}>
+            <span className={`absolute top-4 left-4 px-3 py-1 text-[10px] font-bold tracking-widest rounded-full uppercase z-10 shadow-sm ${badge.className}`} style={{ fontFamily: 'var(--font-body)' }}>
               {badge.text}
             </span>
           )}
-
-          {/* Image Container */}
-          <div className="relative overflow-hidden" style={{ aspectRatio: '3/4' }}>
-            <img
-              src={product.image || (product.images && product.images[0]) || ''}
-              alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
-            />
-          </div>
-
-          {/* Product Info */}
-          <div className="p-3 lg:p-4">
-            <h3
-              className="mb-1 lg:mb-2 truncate"
-              style={{
-                fontFamily: 'var(--font-body)',
-                fontSize: 'clamp(12px, 2vw, 13px)',
-                color: 'var(--brand-dark-text)',
-                fontWeight: '600'
-              }}
-            >
-              {product.name}
-            </h3>
-            
-            {/* Price section with discount support */}
-            <div className="flex items-baseline gap-2 mb-2 lg:mb-3">
-              <span
-                style={{
-                  fontFamily: 'var(--font-price)',
-                  fontSize: 'clamp(13px, 2vw, 15px)',
-                  color: 'var(--brand-cta-green)',
-                  fontWeight: '700'
-                }}
-              >
-                ₹{netPrice.toLocaleString()}
-              </span>
-              {(product.discount || 0) > 0 && (
-                <span
-                  className="line-through opacity-50 text-gray-500"
-                  style={{
-                    fontFamily: 'var(--font-price)',
-                    fontSize: 'clamp(10px, 1.8vw, 11px)'
-                  }}
-                >
-                  ₹{product.price.toLocaleString()}
-                </span>
-              )}
-            </div>
-
-            {/* Size Pills */}
-            <div className="flex gap-1.5 flex-wrap">
-              {product.sizes?.slice(0, 3).map((sizeObj: any) => (
-                <span
-                  key={sizeObj.size || sizeObj}
-                  className="px-2 py-0.5 border"
-                  style={{
-                    borderRadius: '8px',
-                    fontSize: '10px',
-                    fontFamily: 'var(--font-body)',
-                    color: 'var(--brand-dark-text)',
-                    borderColor: 'rgba(30, 64, 22, 0.15)',
-                    backgroundColor: 'var(--brand-alt-bg)'
-                  }}
-                >
-                  {sizeObj.size || sizeObj}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Add to Cart Bar - Slides up on hover */}
-          <motion.div
-            initial={{ y: '100%' }}
-            animate={{ y: isHovered ? 0 : '100%' }}
-            transition={{ duration: 0.25 }}
-            className="absolute bottom-0 left-0 right-0 text-white py-3 text-center"
-            style={{
-              backgroundColor: 'var(--brand-cta-green)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              fontWeight: '600',
-              borderRadius: '0 0 14px 14px'
-            }}
-          >
-            Add to Cart
-          </motion.div>
+          <img
+            src={product.image || (product.images && product.images[0]) || ''}
+            alt={product.name}
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+        </div>
+        
+        <h3
+          className="text-center mb-1.5 w-full truncate px-2"
+          style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(13px, 2vw, 15px)', color: '#2c4c3b', fontWeight: '600' }}
+        >
+          {product.name}
+        </h3>
+        
+        <div className="flex items-center justify-center gap-2.5">
+          <span style={{ fontFamily: 'var(--font-price)', fontSize: '15px', color: '#2c4c3b', fontWeight: '800' }}>
+            ₹{netPrice.toLocaleString()}
+          </span>
+          {(product.discount || 0) > 0 && (
+            <span className="line-through text-gray-400" style={{ fontFamily: 'var(--font-price)', fontSize: '12px' }}>
+              ₹{product.price.toLocaleString()}
+            </span>
+          )}
         </div>
       </Link>
     </motion.div>
   );
 }
 
-function ProductSection({ 
-  title, 
-  subtitle,
-  products, 
-  badgeGetter 
-}: { 
-  title: string; 
-  subtitle: string;
-  products: Product[]; 
-  badgeGetter: (product: Product) => { text: string; className: string } 
-}) {
+// Format 1 Section
+function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) {
   if (products.length === 0) return null;
-  
   return (
-    <section className="py-10 lg:py-14 bg-white border-b border-gray-100 last:border-0">
+    <section className="py-12 lg:py-16 bg-[#fdfcfb] border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
-        {/* Section Header */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-2 mb-6 lg:mb-8 px-1 lg:px-0">
-          <div>
-            <h2
-              className="uppercase tracking-wide text-left mb-1"
-              style={{
-                fontFamily: 'var(--font-headline)',
-                fontSize: 'clamp(20px, 4vw, 28px)',
-                color: 'var(--brand-dark-text)',
-                fontWeight: '700',
-                borderBottom: '3px solid var(--brand-cta-green)',
-                paddingBottom: '4px',
-                display: 'inline-block'
-              }}
-            >
-              {title}
-            </h2>
-            <p className="text-xs text-gray-400 font-medium" style={{ fontFamily: 'var(--font-body)' }}>
-              {subtitle}
-            </p>
-          </div>
-          <Link
-            to="/shop"
-            className="flex items-center gap-1.5 group text-xs font-bold uppercase tracking-wider text-[var(--brand-dark-text)] hover:text-[var(--brand-cta-green)] transition-colors mt-2 lg:mt-0"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            View All
-            <span className="transition-transform duration-200 group-hover:translate-x-1">→</span>
+        <div className="flex flex-col items-center text-center mb-10 lg:mb-14 relative">
+          <h2 className="uppercase tracking-widest text-[#2c4c3b] mb-2 font-bold" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(24px, 4vw, 32px)' }}>
+            {title}
+          </h2>
+          <p className="text-gray-500" style={{ fontFamily: 'var(--font-body)', fontSize: '14px' }}>
+            {subtitle}
+          </p>
+          <Link to="/shop" className="text-[11px] font-bold tracking-widest text-[#2c4c3b] hover:text-[#4a725b] transition-colors absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1.5">
+            VIEW ALL <span>→</span>
+          </Link>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 lg:gap-x-8 lg:gap-y-14">
+          {products.map((product: any, index: number) => (
+            <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} />
+          ))}
+        </div>
+        <div className="mt-10 text-center lg:hidden">
+          <Link to="/shop" className="text-[11px] font-bold tracking-widest text-[#2c4c3b] inline-flex items-center gap-1.5 border-b border-[#2c4c3b] pb-0.5">
+             VIEW ALL <span>→</span>
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+// Format 2 Section (New Arrivals)
+function NewArrivalsSection({ products, badgeGetter }: any) {
+  if (products.length === 0) return null;
+  return (
+    <section className="bg-[#293526] py-14 lg:py-20 overflow-hidden relative border-b border-gray-100">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-10 lg:gap-14 relative z-10">
+        
+        {/* Left Banner Info */}
+        <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-4 lg:mb-0">
+          <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[10px] font-bold mb-3">Just Landed</p>
+          <h2 className="text-[#f7f5f0] uppercase tracking-wide leading-tight mb-4" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(32px, 5vw, 44px)', fontWeight: '300' }}>
+            NEW<br/>ARRIVALS
+          </h2>
+          <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 17px)' }}>
+            Be the first to own the latest trends.
+          </p>
+          <Link to="/shop" className="mt-10 text-[#f7f5f0] text-[11px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 hidden lg:inline-flex items-center gap-2">
+             VIEW ALL COLLECTION <span>→</span>
           </Link>
         </div>
 
-        {/* Product Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-          {products.map((product, index) => (
-            <ProductCard 
-              key={product.id} 
-              product={product} 
-              index={index} 
-              badge={badgeGetter(product)} 
-            />
-          ))}
+        {/* Right Scrolling Products */}
+        <div className="lg:w-3/4 w-full overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4">
+          <div className="flex gap-5 lg:gap-8 w-max pe-4 lg:pe-12">
+            {products.map((product: any, index: number) => {
+               const badge = badgeGetter(product);
+               return (
+                 <motion.div key={product.id} initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ delay: index*0.1 }} className="snap-start w-[160px] lg:w-[220px]">
+                   <Link to={`/product/${product.id}`} className="group flex flex-col items-center">
+                     <div 
+                       className="relative overflow-hidden w-full mb-4 bg-black/20 transition-transform duration-300 group-hover:-translate-y-2" 
+                       style={{ aspectRatio: '3/4', borderRadius: '150px 150px 12px 12px' }}
+                     >
+                       {badge && (
+                         <span className="absolute top-3 left-3 px-2 py-0.5 text-[9px] font-bold tracking-widest rounded-full uppercase z-10 bg-[#a4b49d] text-white">
+                           {badge.text}
+                         </span>
+                       )}
+                       <img src={product.image || (product.images && product.images[0]) || ''} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                     </div>
+                     <h3 className="text-center mb-1.5 w-full truncate px-2 text-[#f7f5f0]" style={{ fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500' }}>
+                       {product.name}
+                     </h3>
+                     <p className="text-center text-[#a4b49d]" style={{ fontFamily: 'var(--font-price)', fontSize: '14px', fontWeight: '700' }}>
+                       ₹{Math.round(product.price * (1 - (product.discount || 0) / 100)).toLocaleString()}
+                     </p>
+                   </Link>
+                 </motion.div>
+               )
+            })}
+          </div>
         </div>
+        
+        <Link to="/shop" className="text-[#f7f5f0] text-[11px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 inline-flex items-center gap-2 lg:hidden mt-4">
+           VIEW ALL COLLECTION <span>→</span>
+        </Link>
       </div>
     </section>
   );
@@ -235,9 +184,7 @@ export function ProductGrid() {
     const loadProducts = async () => {
       try {
         const data = await api.getProducts();
-        if (Array.isArray(data)) {
-          setProducts(data);
-        }
+        if (Array.isArray(data)) setProducts(data);
       } catch (error) {
         console.error('Failed to load products', error);
       } finally {
@@ -249,69 +196,63 @@ export function ProductGrid() {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--brand-cta-green)]"></div>
+      <div className="py-20 flex justify-center bg-[#fdfcfb]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#2c4c3b]"></div>
       </div>
     );
   }
 
-  // Filter lists
+  // 1. New Arrivals: newest by createdAt
   const newArrivals = [...products]
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-    .slice(0, 4);
+    .slice(0, 8);
 
+  // 2. Best Sellers: highest ratings.count (fallback to arbitrary if missing)
   const bestSellers = [...products]
-    .sort((a, b) => (b.ratings?.average || 0) - (a.ratings?.average || 0))
+    .sort((a, b) => ((b.ratings?.count || 0) - (a.ratings?.count || 0)))
     .slice(0, 4);
 
-  const premiumCollection = [...products]
-    .sort((a, b) => (b.price || 0) - (a.price || 0))
+  // 3. Premium Collection: highest price
+  const premiumProducts = [...products]
+    .sort((a, b) => b.price - a.price)
     .slice(0, 4);
 
-  const deals = [...products]
+  // 4. Deals of the Day: highest discount
+  const dealProducts = [...products]
     .filter(p => (p.discount || 0) > 0)
     .sort((a, b) => (b.discount || 0) - (a.discount || 0))
     .slice(0, 4);
-    
-  const dealsToShow = deals.length > 0 ? deals : products.slice(0, 4);
 
   return (
-    <div className="bg-white">
-      {/* 1. New Arrivals */}
-      <ProductSection 
-        title="New Arrivals" 
-        subtitle="Fresh drops from our designer workshop"
-        products={newArrivals} 
-        badgeGetter={() => ({ text: 'NEW', className: 'bg-emerald-500 text-white' })}
+    <>
+      <NewArrivalsSection 
+        products={newArrivals}
+        badgeGetter={() => ({ text: 'NEW', className: 'bg-[#a4b49d] text-white' })}
       />
 
-      {/* 2. Best Sellers */}
-      <ProductSection 
-        title="Best Sellers" 
-        subtitle="The styles everyone is talking about"
-        products={bestSellers} 
-        badgeGetter={() => ({ text: 'BEST SELLER', className: 'bg-amber-500 text-white' })}
+      <ProductSectionFormat1
+        title="Best Sellers"
+        subtitle="Our most loved styles this season."
+        products={bestSellers}
+        badgeGetter={() => ({ text: 'HOT', className: 'bg-red-50 text-red-600 border border-red-100' })}
       />
 
-      {/* 3. Premium Collection */}
-      <ProductSection 
-        title="Premium Collection" 
-        subtitle="Luxury ethnic & western statements"
-        products={premiumCollection} 
-        badgeGetter={() => ({ text: 'PREMIUM', className: 'bg-purple-600 text-white border border-purple-400' })}
+      <ProductSectionFormat1
+        title="Premium Collection"
+        subtitle="Exclusive fabrics and intricate craftsmanship."
+        products={premiumProducts}
+        badgeGetter={() => ({ text: 'LUXE', className: 'bg-amber-50 text-amber-600 border border-amber-100' })}
       />
 
-      {/* 4. Deals of the Day */}
-      <ProductSection 
-        title="Deals of the Day" 
-        subtitle="Exclusive discounts for a limited time only"
-        products={dealsToShow} 
-        badgeGetter={(p) => ({ 
-          text: p.discount ? `${p.discount}% OFF` : 'DEAL', 
-          className: 'bg-red-500 text-white' 
+      <ProductSectionFormat1
+        title="Deals of the Day"
+        subtitle="Incredible styles at unbeatable prices."
+        products={dealProducts}
+        badgeGetter={(product: Product) => ({ 
+          text: `${product.discount}% OFF`, 
+          className: 'bg-green-50 text-green-600 border border-green-100' 
         })}
       />
-    </div>
+    </>
   );
 }
-

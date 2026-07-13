@@ -11,20 +11,14 @@ const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const categories = [
-    { name: '3 Piece Dress', type: 'indian', image: '/assets/3PieceDress.jpg' },
-    { name: '2 Piece Dress', type: 'indian', image: '/assets/2PieceDress.jpg' },
-    { name: 'Kurtis', type: 'indian', image: '/assets/kurti.jpg' },
-    { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
-    { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
-    { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
-    { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
-    { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
-    { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
-    { name: 'Western Dresses', type: 'western', image: '/assets/westernDress.jpg' },
-    { name: 'Skirts', type: 'western', image: '/assets/skirt.jpg' },
-    { name: 'T-shirts', type: 'western', image: '/assets/tshirt.jpg' },
-    { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
-    { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
+    { name: '3-Piece Suits', type: 'indian', slug: '3-piece-suits', image: '/assets/3PieceDress.jpg' },
+    { name: 'Cord sets', type: 'indian', slug: 'cord-sets-indian', image: '/assets/indianCordSet.jpg' },
+    { name: 'Tunics', type: 'indian', slug: 'tunics-indian', image: '/assets/tunic.jpg' },
+    { name: 'Kurtis', type: 'indian', slug: 'kurtis', image: '/assets/kurti.jpg' },
+    
+    { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
+    { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
+    { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/westernCordSet.jpg' }
 ];
 
 async function seedCategories() {
@@ -34,16 +28,16 @@ async function seedCategories() {
         await mongoose.connect(uri, { dbName });
         console.log(`Connected to MongoDB database: ${dbName}`);
 
-        await Category.deleteOne({ slug: 'jumpsuits' });
+        // Deactivate all first
+        await Category.updateMany({}, { isActive: false });
 
         for (const cat of categories) {
-            const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
             await Category.findOneAndUpdate(
-                { slug },
+                { slug: cat.slug },
                 {
                     name: cat.name,
                     type: cat.type,
-                    slug,
+                    slug: cat.slug,
                     image: cat.image,
                     isActive: true
                 },

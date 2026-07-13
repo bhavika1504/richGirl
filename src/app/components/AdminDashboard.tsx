@@ -1427,15 +1427,31 @@ export function AdminDashboard() {
                         className="w-32 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
                       >
                         <option value="">Size</option>
-                        <option value="S">S</option>
-                        <option value="M">M</option>
-                        <option value="L">L</option>
-                        <option value="XL">XL</option>
-                        <option value="XXL">XXL</option>
-                        <option value="Other">Other...</option>
+                        <optgroup label="Tops/Cordsets (M-8XL)">
+                          <option value="M">M</option>
+                          <option value="L">L</option>
+                          <option value="XL">XL</option>
+                          <option value="XXL">XXL</option>
+                          <option value="3XL">3XL</option>
+                          <option value="4XL">4XL</option>
+                          <option value="5XL">5XL</option>
+                          <option value="6XL">6XL</option>
+                          <option value="7XL">7XL</option>
+                          <option value="8XL">8XL</option>
+                        </optgroup>
+                        <optgroup label="Bottoms (28-34)">
+                          <option value="28">28</option>
+                          <option value="30">30</option>
+                          <option value="32">32</option>
+                          <option value="34">34</option>
+                        </optgroup>
+                        <optgroup label="Other">
+                          <option value="S">S</option>
+                          <option value="Other">Other...</option>
+                        </optgroup>
                       </select>
 
-                      {(!['S', 'M', 'L', 'XL', 'XXL'].includes(sz.size) && sz.size !== '') && (
+                      {(!['S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL', '28', '30', '32', '34'].includes(sz.size) && sz.size !== '') && (
                         <input
                           type="text"
                           placeholder="e.g. 32, 4XL"

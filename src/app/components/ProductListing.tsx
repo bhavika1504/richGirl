@@ -216,18 +216,26 @@ export function ProductListing() {
               </p>
               
               <div className="grid grid-cols-3 gap-3 mb-6">
-                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => {
-                      toggleSize(size);
-                      setPromptSizeForSubCat(null);
-                    }}
-                    className="h-12 rounded-xl border border-gray-200 hover:border-[var(--brand-cta-green)] hover:bg-[var(--brand-alt-bg)] transition-all font-bold text-sm text-gray-800 cursor-pointer"
-                  >
-                    {size}
-                  </button>
-                ))}
+                {(() => {
+                  let sizes = ['S', 'M', 'L', 'XL', 'XXL'];
+                  if (promptSizeForSubCat === 'Tops' || promptSizeForSubCat === 'Cordsets') {
+                    sizes = ['M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+                  } else if (promptSizeForSubCat === 'Bottoms') {
+                    sizes = ['28', '30', '32', '34'];
+                  }
+                  return sizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => {
+                        toggleSize(size);
+                        setPromptSizeForSubCat(null);
+                      }}
+                      className="h-12 rounded-xl border border-gray-200 hover:border-[var(--brand-cta-green)] hover:bg-[var(--brand-alt-bg)] transition-all font-bold text-sm text-gray-800 cursor-pointer"
+                    >
+                      {size}
+                    </button>
+                  ));
+                })()}
               </div>
               
               <button

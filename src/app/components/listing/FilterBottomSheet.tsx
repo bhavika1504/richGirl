@@ -34,21 +34,33 @@ export function FilterBottomSheet({
   const [expandedGroup, setExpandedGroup] = useState<string | null>('category');
 
   const indianSubCategories = [
-    { name: 'Saree', count: 12 },
-    { name: 'Kurta', count: 8 },
-    { name: 'Salwar Kameez', count: 6 },
-    { name: 'Lehengas', count: 5 },
-    { name: 'Palazzos', count: 4 },
+    { name: '3-Piece Suits', count: 10 },
+    { name: 'Cord sets', count: 8 },
+    { name: 'Tunics', count: 6 },
+    { name: 'Kurtis', count: 12 },
   ];
 
   const westernSubCategories = [
     { name: 'Tops', count: 10 },
     { name: 'Bottoms', count: 12 },
-    { name: 'Cordsets', count: 6 },
+    { name: 'Cord sets', count: 6 },
   ];
 
   const currentSubCategories = category === 'western' ? westernSubCategories : indianSubCategories;
-  const sizes = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+  
+  const getSizesList = () => {
+    if (category === 'western') {
+      if (activeSubCategories.includes('Bottoms')) {
+        return ['28', '30', '32', '34'];
+      }
+      if (activeSubCategories.includes('Tops') || activeSubCategories.includes('Cord sets')) {
+        return ['M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL'];
+      }
+    }
+    return ['XS', 'S', 'M', 'L', 'XL', 'XXL', '3XL', '4XL', '5XL', '6XL', '7XL', '8XL', '28', '30', '32', '34'];
+  };
+
+  const sizes = getSizesList();
 
   const colors = [
     { name: 'Black', hex: '#000000' },

@@ -91,7 +91,22 @@ export function ProductGrid({
             return ['cord-sets-western', 'cord sets-western', 'cordsets'].includes(catName) || /cord/i.test(catName);
           }
         }
-        // Fallback for Indian Wear:
+        if (category === 'indian') {
+          if (subCat === '3-Piece Suits') {
+            return ['3-piece-suits', 'suits', '3 piece suits'].includes(catName) || /suit|3-piece/i.test(catName);
+          }
+          if (subCat === 'Cord sets') {
+            return ['cord-sets', 'cord sets', 'cordsets'].includes(catName) || /cord/i.test(catName);
+          }
+          if (subCat === 'Tunics') {
+            return ['tunics', 'tunic'].includes(catName) || /tunic/i.test(catName);
+          }
+          if (subCat === 'Kurtis') {
+            return ['kurtis', 'kurti'].includes(catName) || /kurti/i.test(catName);
+          }
+        }
+        
+        // Fallback:
         const productTags = product.tags || [product.categoryName || ''];
         return productTags.includes(subCat);
       });
