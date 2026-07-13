@@ -36,7 +36,7 @@ export function CategoryScroll() {
       <div className="flex items-center justify-between mb-3 lg:mb-4 px-1 lg:px-0">
         <h3
           className="text-sm lg:text-lg font-bold text-[var(--brand-dark-text)] uppercase tracking-wider"
-          style={{ fontFamily: 'var(--font-palatino)' }}
+          style={{ fontFamily: 'var(--font-headline)' }}
         >
           {title}
         </h3>
@@ -69,7 +69,7 @@ export function CategoryScroll() {
               <p
                 className="text-center font-medium leading-tight text-[11px] lg:text-[13px]"
                 style={{
-                  fontFamily: 'var(--font-palatino)',
+                  fontFamily: 'var(--font-body)',
                   color: 'var(--brand-dark-text)'
                 }}
               >

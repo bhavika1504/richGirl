@@ -51,8 +51,8 @@
   --brand-breadcrumb: #4A7C3A;
 
   /* Brand Fonts */
-  --font-headline: var(--font-palatino);
-  --font-body: var(--font-palatino);
+  --font-headline: var(--font-syne);
+  --font-body: var(--font-plus-jakarta);
   --font-price: 'DM Mono', monospace;
 }
 

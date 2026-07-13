@@ -221,7 +221,7 @@ export function EmployeeDashboard() {
             {/* SIDEBAR - DESKTOP */}
             <aside className="hidden lg:flex w-72 bg-white border-r border-gray-100 flex-col sticky top-0 h-screen">
                 <div className="p-8">
-                    <img src="/assets/richgirl_logo.png" alt="RichGirl" className="h-14 w-auto object-contain" />
+                    <img src="/assets/richgirl_logo.png" alt="RichGirl" className="h-20 w-auto object-contain" />
                     <div className="mt-4 p-4 bg-[var(--brand-alt-bg)] rounded-3xl">
                         <p className="text-[10px] font-bold text-[var(--brand-cta-green)] uppercase tracking-[0.2em] mb-1">Employee Panel</p>
                         <p className="text-sm font-bold text-gray-900 truncate">{user?.name}</p>
@@ -243,7 +243,7 @@ export function EmployeeDashboard() {
 
             {/* MOBILE HEADER */}
             <header className="lg:hidden bg-white px-6 py-4 border-b border-gray-100 flex items-center justify-between sticky top-0 z-40">
-                <img src="/assets/richgirl_logo.png" alt="RichGirl" className="h-10 w-auto" />
+                <img src="/assets/richgirl_logo.png" alt="RichGirl" className="h-14 w-auto" />
                 <div className="flex items-center gap-4">
                     <button onClick={() => navigate('/')} className="p-2 bg-gray-50 rounded-full font-bold text-xs">Shop</button>
                     <button onClick={logout} className="p-2 text-red-500"><LogOut className="w-5 h-5" /></button>

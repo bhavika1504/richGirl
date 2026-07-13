@@ -44,7 +44,7 @@ export function Navbar() {
   return (
     <>
       <nav className="bg-white sticky top-0 z-50" style={{ borderBottom: '0.5px solid var(--brand-border)' }}>
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-12 h-20 flex items-center justify-between">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-12 h-24 lg:h-28 flex items-center justify-between">
           {/* Mobile Menu Button */}
           <button
             className="lg:hidden p-2 -ml-2"
@@ -83,7 +83,7 @@ export function Navbar() {
             <img
               src="/assets/richgirl_logo.png"
               alt="RICH GIRL"
-              className="h-14 lg:h-18 w-auto object-contain"
+              className="h-18 lg:h-24 w-auto object-contain"
             />
           </Link>
 
@@ -131,7 +131,7 @@ export function Navbar() {
               <img
                 src="/assets/richgirl_logo.png"
                 alt="RICH GIRL"
-                className="h-14 lg:h-16 w-auto object-contain"
+                className="h-18 lg:h-22 w-auto object-contain"
               />
               <button
                 onClick={() => setIsMobileMenuOpen(false)}

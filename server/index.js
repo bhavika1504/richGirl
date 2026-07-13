@@ -121,13 +121,15 @@ let mongoConnected = false;
 const connectDB = async () => {
   if (mongoConnected && mongoose.connection.readyState === 1) return;
   try {
-    await mongoose.connect(process.env.MONGO_URI, {
-      dbName: process.env.MONGO_DB_NAME || 'RichGirl_Test',
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    const dbName = process.env.MONGO_DB_NAME || 'RichGirl_Test';
+    await mongoose.connect(uri, {
+      dbName: dbName,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
     mongoConnected = true;
-    console.log('✅ Connected to MongoDB Atlas');
+    console.log(`✅ Connected to MongoDB Atlas. Database: ${dbName}`);
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
     throw err;
@@ -222,7 +224,6 @@ async function seedInitialData() {
       { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
       { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
       { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
-      { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
       { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
       { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
       { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
@@ -232,6 +233,7 @@ async function seedInitialData() {
       { name: 'Shorts', type: 'western', image: '/assets/shorts.jpg' },
       { name: 'Pants', type: 'western', image: '/assets/pants.jpg' }
     ];
+    await Category.deleteOne({ slug: 'jumpsuits' });
     for (const cat of categoriesToSeed) {
       const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       await Category.findOneAndUpdate(

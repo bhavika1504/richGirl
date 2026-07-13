@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:5000/api');
 
 axios.interceptors.response.use(
   response => response,
@@ -18,9 +18,8 @@ axios.interceptors.response.use(
 );
 axios.interceptors.request.use((config) => {
   const token = sessionStorage.getItem('token');
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
   // Only attach Authorization for our own API calls
-  if (token && config.url && config.url.startsWith(apiBase)) {
+  if (token && config.url && config.url.startsWith(API_BASE_URL)) {
     config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }

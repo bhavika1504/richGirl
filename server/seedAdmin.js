@@ -12,8 +12,10 @@ dotenv.config({ path: path.join(__dirname, '..', '.env') });
 
 const seedAdmin = async () => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to MongoDB Atlas');
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+    const dbName = process.env.MONGO_DB_NAME || 'RichGirl_Test';
+    await mongoose.connect(uri, { dbName });
+    console.log(`✅ Connected to MongoDB Atlas. Database: ${dbName}`);
 
     const adminEmail = 'admin@richgirl.com';
     const existingAdmin = await User.findOne({ email: adminEmail });

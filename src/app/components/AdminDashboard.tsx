@@ -596,7 +596,7 @@ export function AdminDashboard() {
             <img
               src="/assets/richgirl_logo.png"
               alt="RICH GIRL"
-              className="h-16 w-auto object-contain"
+              className="h-22 w-auto object-contain"
             />
           </Link>
         </div>

@@ -99,7 +99,7 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                       >
                         <SearchIcon className="w-4 h-4 text-gray-400" />
                         <div className="flex-1">
-                          <h4 className="text-[var(--brand-dark-text)]" style={{ fontFamily: 'var(--font-palatino)' }}>
+                          <h4 className="text-[var(--brand-dark-text)]" style={{ fontFamily: 'var(--font-headline)' }}>
                             {product.name}
                           </h4>
                         </div>

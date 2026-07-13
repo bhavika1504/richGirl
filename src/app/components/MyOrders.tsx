@@ -24,7 +24,7 @@ export function MyOrders() {
             try {
                 const userId = localStorage.getItem('userId');
                 if (!userId) return;
-                const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL || 'http://localhost:5000/api';
+                const baseUrl = (import.meta as any).env?.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '/api' : 'http://localhost:5000/api');
                 const response = await fetch(`${baseUrl}/orders/user/${userId}`, {
                     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
                     cache: 'no-store'

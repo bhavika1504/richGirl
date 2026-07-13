@@ -17,7 +17,6 @@ const categories = [
     { name: 'Tunics', type: 'western', image: '/assets/tunic.jpg' },
     { name: 'Tops', type: 'western', image: '/assets/top.jpg' },
     { name: 'Shirts', type: 'western', image: '/assets/shirt.jpg' },
-    { name: 'Jumpsuits', type: 'western', image: '/assets/jumpsuit.jpg' },
     { name: 'Jeans', type: 'western', image: '/assets/jeans.jpg' },
     { name: 'Cord Sets-Western', type: 'western', image: '/assets/westernCordSet.jpg' },
     { name: 'Cord Sets-Indian', type: 'indian', image: '/assets/indianCordSet.jpg' },
@@ -30,8 +29,12 @@ const categories = [
 
 async function seedCategories() {
     try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log('Connected to MongoDB');
+        const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+        const dbName = process.env.MONGO_DB_NAME || 'RichGirl_Test';
+        await mongoose.connect(uri, { dbName });
+        console.log(`Connected to MongoDB database: ${dbName}`);
+
+        await Category.deleteOne({ slug: 'jumpsuits' });
 
         for (const cat of categories) {
             const slug = cat.name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
