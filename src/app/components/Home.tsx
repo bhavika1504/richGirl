@@ -2,10 +2,8 @@ import { Navbar } from './Navbar';
 import { Hero } from './Hero';
 import { CategoryScroll } from './CategoryScroll';
 import { ProductGrid } from './ProductGrid';
-import { IndianWearBanner } from './IndianWearBanner';
 import { Testimonials } from './Testimonials';
 import { Footer } from './Footer';
-import { api } from '../services/api';
 
 export function Home() {
   return (
@@ -15,7 +13,6 @@ export function Home() {
         <Hero />
         <CategoryScroll />
         <ProductGrid />
-        <IndianWearBanner />
         <Testimonials />
       </main>
       <Footer />

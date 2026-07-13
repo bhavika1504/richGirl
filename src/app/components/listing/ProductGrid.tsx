@@ -76,10 +76,25 @@ export function ProductGrid({
       return false;
     }
 
-    // 4. Sub-category (Tag) Filter
+    // 4. Sub-category (Tag) Filter (with mapping for Western categories: Tops, Bottoms, Cordsets)
     if (activeSubCategories.length > 0) {
-      const productTags = product.tags || [product.category];
-      const hasSubCat = activeSubCategories.some(subCat => productTags.includes(subCat));
+      const hasSubCat = activeSubCategories.some(subCat => {
+        const catName = (product.categoryName || '').toLowerCase();
+        if (category === 'western') {
+          if (subCat === 'Tops') {
+            return ['tops', 'shirts', 't-shirts', 'tunics'].includes(catName) || /top|shirt|tunic/i.test(catName);
+          }
+          if (subCat === 'Bottoms') {
+            return ['jeans', 'skirts', 'shorts', 'pants', 'trousers'].includes(catName) || /jean|skirt|short|pants|trouser|bottom/i.test(catName);
+          }
+          if (subCat === 'Cordsets') {
+            return ['cord-sets-western', 'cord sets-western', 'cordsets'].includes(catName) || /cord/i.test(catName);
+          }
+        }
+        // Fallback for Indian Wear:
+        const productTags = product.tags || [product.categoryName || ''];
+        return productTags.includes(subCat);
+      });
       if (!hasSubCat) return false;
     }
 

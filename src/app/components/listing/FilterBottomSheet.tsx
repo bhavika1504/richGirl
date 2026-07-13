@@ -42,10 +42,9 @@ export function FilterBottomSheet({
   ];
 
   const westernSubCategories = [
-    { name: 'Dresses', count: 15 },
     { name: 'Tops', count: 10 },
-    { name: 'Skirts', count: 8 },
-    { name: 'Jeans', count: 7 },
+    { name: 'Bottoms', count: 12 },
+    { name: 'Cordsets', count: 6 },
   ];
 
   const currentSubCategories = category === 'western' ? westernSubCategories : indianSubCategories;

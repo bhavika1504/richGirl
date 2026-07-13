@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router';
 import { ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Navbar } from './Navbar';
 import { PageHeader } from './listing/PageHeader';
 import { FilterSidebar } from './listing/FilterSidebar';
@@ -22,6 +23,8 @@ export function ProductListing() {
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
   const [activeSubCategories, setActiveSubCategories] = useState<string[]>([]);
 
+  const [promptSizeForSubCat, setPromptSizeForSubCat] = useState<string | null>(null);
+
   const toggleSize = (size: string) => {
     setActiveSizes(prev => prev.includes(size) ? prev.filter(s => s !== size) : [...prev, size]);
   };
@@ -31,7 +34,17 @@ export function ProductListing() {
   };
 
   const toggleSubCategory = (subCat: string) => {
-    setActiveSubCategories(prev => prev.includes(subCat) ? prev.filter(s => s !== subCat) : [...prev, subCat]);
+    setActiveSubCategories(prev => {
+      const isAdding = !prev.includes(subCat);
+      const nextSubCategories = isAdding ? [...prev, subCat] : prev.filter(s => s !== subCat);
+
+      // If we are adding a subcategory in Western wear and no size is selected yet, prompt for size
+      if (category === 'western' && isAdding && activeSizes.length === 0) {
+        setPromptSizeForSubCat(subCat);
+      }
+
+      return nextSubCategories;
+    });
   };
 
   const clearAllFilters = () => {
@@ -174,6 +187,59 @@ export function ProductListing() {
         sortBy={sortBy}
         onSortChange={setSortBy}
       />
+
+      {/* Western Size Prompt Modal */}
+      <AnimatePresence>
+        {promptSizeForSubCat && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-3xl p-6 lg:p-8 max-w-md w-full shadow-2xl text-center border border-gray-100 relative"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              <button 
+                onClick={() => setPromptSizeForSubCat(null)}
+                className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 text-lg font-bold p-1"
+              >
+                ×
+              </button>
+              <h3 
+                className="text-xl font-bold text-gray-900 mb-2"
+                style={{ fontFamily: 'var(--font-headline)' }}
+              >
+                Select Your Size
+              </h3>
+              <p className="text-xs text-gray-500 mb-6 leading-relaxed">
+                Find the perfect fit for your new <span className="font-bold text-[var(--brand-dark-text)]">{promptSizeForSubCat}</span>. Select your size to filter items.
+              </p>
+              
+              <div className="grid grid-cols-3 gap-3 mb-6">
+                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map((size) => (
+                  <button
+                    key={size}
+                    onClick={() => {
+                      toggleSize(size);
+                      setPromptSizeForSubCat(null);
+                    }}
+                    className="h-12 rounded-xl border border-gray-200 hover:border-[var(--brand-cta-green)] hover:bg-[var(--brand-alt-bg)] transition-all font-bold text-sm text-gray-800 cursor-pointer"
+                  >
+                    {size}
+                  </button>
+                ))}
+              </div>
+              
+              <button
+                onClick={() => setPromptSizeForSubCat(null)}
+                className="text-[10px] font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-wider cursor-pointer"
+              >
+                Skip size filter
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
