@@ -103,10 +103,11 @@ export function Hero() {
                     transition={{ delay: 0.3 }}
                     className="mb-0.5 lg:mb-2 uppercase tracking-wider"
                     style={{
-                      fontFamily: 'var(--font-body)',
-                      fontSize: 'clamp(10px, 2vw, 12px)',
+                      fontFamily: 'var(--font-manrope)',
+                      fontSize: 'clamp(9px, 1.8vw, 11px)',
                       color: 'var(--brand-cta-green)',
-                      fontWeight: '600'
+                      fontWeight: '600',
+                      letterSpacing: '0.12em'
                     }}
                   >
                     {slides[currentSlide].subtitle}
@@ -117,11 +118,13 @@ export function Hero() {
                     transition={{ delay: 0.4 }}
                     className="mb-3 lg:mb-6"
                     style={{
-                      fontFamily: 'var(--font-headline)',
-                      fontSize: 'clamp(22px, 5vw, 48px)',
-                      lineHeight: '1.2',
+                      fontFamily: 'var(--font-hero)',
+                      fontSize: 'clamp(28px, 6vw, 64px)',
+                      lineHeight: '1.05',
                       color: 'white',
-                      fontWeight: '600'
+                      fontWeight: '800',
+                      textTransform: 'uppercase',
+                      letterSpacing: '-0.01em'
                     }}
                   >
                     {slides[currentSlide].title}

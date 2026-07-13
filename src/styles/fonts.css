@@ -1,4 +1,6 @@
 :root {
-    --font-syne: 'Syne', sans-serif;
-    --font-plus-jakarta: 'Plus Jakarta Sans', sans-serif;
+    --font-clash: 'ClashDisplay', 'Clash Display', sans-serif;
+    --font-general-sans: 'GeneralSans', 'General Sans', sans-serif;
+    --font-monument: 'MonumentExtended', 'Monument Extended', sans-serif;
+    --font-manrope: 'Manrope', sans-serif;
 }

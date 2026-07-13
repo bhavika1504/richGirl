@@ -51,8 +51,10 @@
   --brand-breadcrumb: #4A7C3A;
 
   /* Brand Fonts */
-  --font-headline: var(--font-syne);
-  --font-body: var(--font-plus-jakarta);
+  --font-headline: var(--font-clash);       /* Clash Display — page headings */
+  --font-body: var(--font-manrope);         /* Manrope — all body/general text */
+  --font-subheading: var(--font-general-sans); /* General Sans — subheadings, labels */
+  --font-hero: var(--font-monument);        /* Monument Extended — hero slider titles */
   --font-price: 'DM Mono', monospace;
 }
 

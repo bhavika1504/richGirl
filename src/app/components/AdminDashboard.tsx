@@ -94,6 +94,8 @@ export function AdminDashboard() {
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  // Per-colour images: key = `${szIdx}_${vIdx}`, value = { files: File[], previews: string[] }
+  const [colorImages, setColorImages] = useState<Record<string, { files: File[], previews: string[] }>>({});
   const [submittingProduct, setSubmittingProduct] = useState(false);
   const [generatingAI, setGeneratingAI] = useState(false);
 
@@ -353,9 +355,20 @@ export function AdminDashboard() {
       })),
       type: product.type || 'western'
     });
+    // Pre-fill per-colour image previews from saved data
+    const existingColorImages: Record<string, { files: File[], previews: string[] }> = {};
+    product.sizes?.forEach((s: any, szIdx: number) => {
+      s.variants?.forEach((v: any, vIdx: number) => {
+        if (v.images && v.images.length > 0) {
+          existingColorImages[`${szIdx}_${vIdx}`] = { files: [], previews: v.images };
+        }
+      });
+    });
+    setColorImages(existingColorImages);
     setImagePreviews(product.images || (product.image ? [product.image] : []));
     setIsAddModalOpen(true);
   };
+
 
   const handleDeleteProduct = async (productId: string) => {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
@@ -372,22 +385,38 @@ export function AdminDashboard() {
     e.preventDefault();
     setSubmittingProduct(true);
     try {
-      const finalImageUrls = [...imagePreviews.filter(p => !p.startsWith('blob:'))];
+      const config = await api.getConfig();
 
+      // Upload global images
+      const finalImageUrls = [...imagePreviews.filter(p => !p.startsWith('blob:'))];
       if (imageFiles.length > 0) {
-        const config = await api.getConfig();
         const uploadPromises = imageFiles.map(file => {
           const formData = new FormData();
           formData.append('file', file);
           formData.append('upload_preset', config.cloudinaryUploadPreset);
-          return axios.post(
-            `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
-            formData
-          );
+          return axios.post(`https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`, formData);
         });
+        const results = await Promise.all(uploadPromises);
+        results.forEach(res => finalImageUrls.push(res.data.secure_url));
+      }
 
-        const uploadResults = await Promise.all(uploadPromises);
-        uploadResults.forEach(res => finalImageUrls.push(res.data.secure_url));
+      // Upload per-colour images
+      const colorImageUrls: Record<string, string[]> = {};
+      for (const key of Object.keys(colorImages)) {
+        const entry = colorImages[key];
+        const existingUrls = entry.previews.filter(p => !p.startsWith('blob:'));
+        const newUrls: string[] = [];
+        if (entry.files.length > 0) {
+          const uploads = entry.files.map(file => {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('upload_preset', config.cloudinaryUploadPreset);
+            return axios.post(`https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`, fd);
+          });
+          const results = await Promise.all(uploads);
+          results.forEach(res => newUrls.push(res.data.secure_url));
+        }
+        colorImageUrls[key] = [...existingUrls, ...newUrls];
       }
 
       const productData = {
@@ -399,16 +428,17 @@ export function AdminDashboard() {
         fabric: newProduct.fabric,
         length: newProduct.length,
         occasion: newProduct.occasion,
-        sizes: newProduct.sizes.map(s => ({
+        sizes: newProduct.sizes.map((s, szIdx) => ({
           size: s.size,
-          variants: s.variants.map(v => ({
+          variants: s.variants.map((v, vIdx) => ({
             color: v.color,
             colorLabel: v.colorLabel,
-            stock: Number(v.stock)
+            stock: Number(v.stock),
+            images: colorImageUrls[`${szIdx}_${vIdx}`] || []
           }))
         })),
         images: finalImageUrls,
-        image: finalImageUrls[0] || '', // Keep legacy 'image' for safety
+        image: finalImageUrls[0] || '',
         type: newProduct.type
       };
 
@@ -448,6 +478,7 @@ export function AdminDashboard() {
     });
     setImageFiles([]);
     setImagePreviews([]);
+    setColorImages({});
   };
 
   const calculateNetPrice = () => {
@@ -1430,60 +1461,133 @@ export function AdminDashboard() {
                       </button>
                     </div>
 
-                    <div className="ml-8 space-y-3">
-                      {sz.variants.map((v, vIdx) => (
-                        <div key={vIdx} className="flex items-center gap-3">
-                          <select
-                            required
-                            value={v.color || ''}
-                            onChange={(e) => {
-                              const updated = [...newProduct.sizes];
-                              updated[szIdx].variants[vIdx].color = e.target.value;
-                              setNewProduct({ ...newProduct, sizes: updated });
-                            }}
-                            className="w-32 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
-                          >
-                            <option value="">Base Color</option>
-                            {STANDARD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
-                          </select>
-                          <input
-                            type="text"
-                            placeholder="Color Label (e.g. Butter Yellow)"
-                            required
-                            value={v.colorLabel || ''}
-                            onChange={(e) => {
-                              const updated = [...newProduct.sizes];
-                              updated[szIdx].variants[vIdx].colorLabel = e.target.value;
-                              setNewProduct({ ...newProduct, sizes: updated });
-                            }}
-                            className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
-                          />
-                          <input
-                            type="number"
-                            placeholder="Qty"
-                            required
-                            min="0"
-                            value={v.stock}
-                            onChange={(e) => {
-                              const updated = [...newProduct.sizes];
-                              updated[szIdx].variants[vIdx].stock = Number(e.target.value);
-                              setNewProduct({ ...newProduct, sizes: updated });
-                            }}
-                            className="w-24 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = [...newProduct.sizes];
-                              updated[szIdx].variants = updated[szIdx].variants.filter((_, i) => i !== vIdx);
-                              setNewProduct({ ...newProduct, sizes: updated });
-                            }}
-                            className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                          >
-                            <X className="w-4 h-4" />
-                          </button>
-                        </div>
-                      ))}
+                    <div className="ml-4 space-y-4">
+                      {sz.variants.map((v, vIdx) => {
+                        const colorKey = `${szIdx}_${vIdx}`;
+                        const cImgs = colorImages[colorKey] || { files: [], previews: [] };
+                        return (
+                          <div key={vIdx} className="border border-gray-100 rounded-2xl p-4 bg-white">
+                            {/* Colour row */}
+                            <div className="flex items-center gap-3 mb-3">
+                              <select
+                                required
+                                value={v.color || ''}
+                                onChange={(e) => {
+                                  const updated = [...newProduct.sizes];
+                                  updated[szIdx].variants[vIdx].color = e.target.value;
+                                  setNewProduct({ ...newProduct, sizes: updated });
+                                }}
+                                className="w-32 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm font-bold"
+                              >
+                                <option value="">Base Color</option>
+                                {STANDARD_COLORS.map(c => <option key={c} value={c}>{c}</option>)}
+                              </select>
+                              <input
+                                type="text"
+                                placeholder="Color Label (e.g. Butter Yellow)"
+                                required
+                                value={v.colorLabel || ''}
+                                onChange={(e) => {
+                                  const updated = [...newProduct.sizes];
+                                  updated[szIdx].variants[vIdx].colorLabel = e.target.value;
+                                  setNewProduct({ ...newProduct, sizes: updated });
+                                }}
+                                className="flex-1 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
+                              />
+                              <input
+                                type="number"
+                                placeholder="Qty"
+                                required
+                                min="0"
+                                value={v.stock}
+                                onChange={(e) => {
+                                  const updated = [...newProduct.sizes];
+                                  updated[szIdx].variants[vIdx].stock = Number(e.target.value);
+                                  setNewProduct({ ...newProduct, sizes: updated });
+                                }}
+                                className="w-20 bg-white border border-gray-200 rounded-xl py-2 px-3 outline-none focus:border-[var(--brand-cta-green)] text-sm"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...newProduct.sizes];
+                                  updated[szIdx].variants = updated[szIdx].variants.filter((_, i) => i !== vIdx);
+                                  setNewProduct({ ...newProduct, sizes: updated });
+                                  // remove color images for this variant
+                                  const ci = { ...colorImages };
+                                  delete ci[colorKey];
+                                  setColorImages(ci);
+                                }}
+                                className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+
+                            {/* Per-colour image upload */}
+                            <div>
+                              <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Images for {v.colorLabel || v.color || 'this colour'}
+                                <span className="text-gray-400 font-normal ml-1">(min 3, max 5)</span>
+                              </p>
+                              <div className="flex gap-2 flex-wrap">
+                                {cImgs.previews.map((src, imgIdx) => (
+                                  <div key={imgIdx} className="relative w-14 h-18 rounded-xl overflow-hidden shadow-sm group border border-gray-100" style={{ height: '72px', width: '56px' }}>
+                                    <img src={src} alt="" className="w-full h-full object-cover" />
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const updated = { ...colorImages };
+                                        updated[colorKey] = {
+                                          files: cImgs.files.filter((_, i) => i !== imgIdx - (cImgs.previews.length - cImgs.files.length)),
+                                          previews: cImgs.previews.filter((_, i) => i !== imgIdx)
+                                        };
+                                        setColorImages(updated);
+                                      }}
+                                      className="absolute top-0.5 right-0.5 p-0.5 bg-white/90 rounded-full text-red-500 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                                    >
+                                      <X className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ))}
+                                {cImgs.previews.length < 5 && (
+                                  <label className="relative w-14 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer" style={{ height: '72px', width: '56px' }}>
+                                    <input
+                                      type="file"
+                                      multiple
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const files = Array.from(e.target.files || []);
+                                        if (cImgs.previews.length + files.length > 5) {
+                                          alert('Max 5 images per colour');
+                                          return;
+                                        }
+                                        const newPreviews = files.map(f => URL.createObjectURL(f));
+                                        setColorImages(prev => ({
+                                          ...prev,
+                                          [colorKey]: {
+                                            files: [...cImgs.files, ...files],
+                                            previews: [...cImgs.previews, ...newPreviews]
+                                          }
+                                        }));
+                                        e.target.value = '';
+                                      }}
+                                    />
+                                    <Plus className="w-4 h-4 text-gray-400" />
+                                    <span className="text-[8px] text-gray-400 mt-0.5">Add</span>
+                                  </label>
+                                )}
+                              </div>
+                              {cImgs.previews.length < 3 && (
+                                <p className="text-[9px] text-amber-500 font-medium mt-1">
+                                  ⚠ Add at least {3 - cImgs.previews.length} more image{3 - cImgs.previews.length > 1 ? 's' : ''}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                       <button
                         type="button"
                         onClick={() => {
@@ -1493,7 +1597,7 @@ export function AdminDashboard() {
                         }}
                         className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1"
                       >
-                        <Plus className="w-3 h-3" /> Add Color for {sz.size}
+                        <Plus className="w-3 h-3" /> Add Colour for {sz.size}
                       </button>
                     </div>
                   </div>

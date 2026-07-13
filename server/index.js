@@ -108,10 +108,19 @@ const SHIPROCKET_GROUPS = [
   { start: 49, end: 49, label: "Courier Details", fill: "FFFFF1C7" },
 ];
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
+let razorpay = null;
+try {
+  if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+    razorpay = new Razorpay({
+      key_id: process.env.RAZORPAY_KEY_ID,
+      key_secret: process.env.RAZORPAY_KEY_SECRET,
+    });
+  } else {
+    console.warn("⚠️ Razorpay keys are not configured. Payments will be unavailable.");
+  }
+} catch (error) {
+  console.error("❌ Failed to initialize Razorpay:", error.message);
+}
 
 // =====================
 // MONGODB CONNECTION (cached for serverless)
@@ -121,15 +130,13 @@ let mongoConnected = false;
 const connectDB = async () => {
   if (mongoConnected && mongoose.connection.readyState === 1) return;
   try {
-    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
-    const dbName = process.env.MONGO_DB_NAME || 'RichGirl_Test';
+    const uri = process.env.MONGO_URI
     await mongoose.connect(uri, {
-      dbName: dbName,
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
     });
     mongoConnected = true;
-    console.log(`✅ Connected to MongoDB Atlas. Database: ${dbName}`);
+    console.log(`✅ Connected to MongoDB Atlas.`);
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
     throw err;
@@ -999,6 +1006,9 @@ app.post('/api/users/reset-password', async (req, res) => {
 // --- Payments ---
 app.post('/api/payment/create-order', requireAuth, async (req, res) => {
   try {
+    if (!razorpay) {
+      return res.status(400).json({ message: 'Razorpay is not configured on the server.' });
+    }
     const { amount } = req.body; // In INR
     const options = {
       amount: amount * 100, // Razorpay works in paise
@@ -1571,15 +1581,7 @@ app.get('/api/orders/track/:orderId', async (req, res) => {
   }
 });
 
-// --- Category List ---
-app.get('/api/categories', async (req, res) => {
-  try {
-    const categories = await Category.find().sort({ name: 1 });
-    res.json(categories);
-  } catch (err) {
-    res.status(500).json({ message: 'Server error' });
-  }
-});
+// (duplicate /api/categories route removed — see definition above near the Categories API section)
 
 
 function getStatusDescription(status, trackingId) {

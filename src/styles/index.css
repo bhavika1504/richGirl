@@ -1,4 +1,15 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Syne:wght@700;800&family=DM+Mono:wght@300;400;500&display=swap');
+/* Manrope - body text */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap');
+
+/* Clash Display - headings (via CDN) */
+@import url('https://api.fontshare.com/v2/css?f[]=clash-display@400,500,600,700&display=swap');
+
+/* General Sans - body/subheadings (via CDN) */
+@import url('https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap');
+
+/* Monument Extended - hero slider (via CDN) */
+@import url('https://api.fontshare.com/v2/css?f[]=monument-extended@400,700,800&display=swap');
+
 @import "./tailwind.css";
 @import "./theme.css";
 @import "./fonts.css";
@@ -14,5 +25,5 @@ h4,
 h5,
 h6 {
   font-family: var(--font-headline);
-  font-weight: 800;
+  font-weight: 700;
 }
