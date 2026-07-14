@@ -77,7 +77,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
               className="absolute top-2 left-2 px-3 py-1 rounded-full"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '10px',
+                fontSize: '11px',
                 backgroundColor: product.isNew ? 'var(--brand-cta-green)' : 'var(--brand-dark-text)',
                 color: product.isNew ? 'var(--brand-white)' : 'var(--brand-mist-green)'
               }}
@@ -129,7 +129,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             className="mb-0.5 lg:mb-1 truncate"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(11px, 2vw, 13px)',
+              fontSize: 'clamp(13px, 2.2vw, 15px)',
               fontWeight: '500',
               color: 'var(--brand-dark-text)'
             }}
@@ -141,7 +141,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             className="mb-1.5 lg:mb-2 hidden lg:block"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(10px, 1.5vw, 11px)',
+              fontSize: 'clamp(11px, 1.5vw, 12px)',
               color: 'var(--brand-secondary-text)'
             }}
           >
@@ -153,7 +153,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             <span
               style={{
                 fontFamily: 'var(--font-price)',
-                fontSize: 'clamp(12px, 2vw, 14px)',
+                fontSize: 'clamp(14px, 2.2vw, 16px)',
                 fontWeight: '500',
                 color: 'var(--brand-dark-text)'
               }}
@@ -165,7 +165,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
                 className="line-through"
                 style={{
                   fontFamily: 'var(--font-price)',
-                  fontSize: 'clamp(9px, 1.5vw, 11px)',
+                  fontSize: 'clamp(11px, 1.5vw, 13px)',
                   color: '#888'
                 }}
               >
@@ -185,7 +185,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
                   className="px-2 py-0.5 rounded border"
                   style={{
                     fontFamily: 'var(--font-body)',
-                    fontSize: 'clamp(9px, 1.5vw, 10px)',
+                    fontSize: 'clamp(10px, 1.5vw, 11px)',
                     color: 'var(--brand-dark-text)',
                     borderColor: 'var(--brand-border)'
                   }}
@@ -206,7 +206,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
           style={{
             backgroundColor: 'var(--brand-cta-green)',
             fontFamily: 'var(--font-body)',
-            fontSize: '12px',
+            fontSize: '13px',
             fontWeight: '500',
             letterSpacing: '0.08em',
             borderRadius: '0 0 14px 14px'

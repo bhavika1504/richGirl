@@ -25,7 +25,7 @@ export function Footer() {
               className="mb-6 opacity-80"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '13px',
+                fontSize: '15px',
                 lineHeight: '1.6',
                 color: 'var(--brand-mist-green)'
               }}
@@ -57,7 +57,7 @@ export function Footer() {
               className="mb-4"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: '500',
                 color: 'var(--brand-mist-green)'
               }}
@@ -78,7 +78,7 @@ export function Footer() {
                     className="transition-opacity hover:opacity-70"
                     style={{
                       fontFamily: 'var(--font-body)',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       color: 'var(--brand-cta-green)'
                     }}
                   >
@@ -95,7 +95,7 @@ export function Footer() {
               className="mb-4"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: '500',
                 color: 'var(--brand-mist-green)'
               }}
@@ -116,7 +116,7 @@ export function Footer() {
                     className="transition-opacity hover:opacity-70"
                     style={{
                       fontFamily: 'var(--font-body)',
-                      fontSize: '13px',
+                      fontSize: '14px',
                       color: 'var(--brand-cta-green)'
                     }}
                   >
@@ -169,7 +169,7 @@ export function Footer() {
             className="opacity-70"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: '12px',
+              fontSize: '13px',
               color: 'var(--brand-mist-green)'
             }}
           >

@@ -24,7 +24,7 @@ const testimonials = [
 export function Testimonials() {
   return (
     <section
-      className="py-10 lg:py-14"
+      className="py-8 lg:py-14"
       style={{ backgroundColor: 'var(--brand-alt-bg)' }}
     >
       <div className="max-w-[1440px] mx-auto px-6 lg:px-12">
@@ -67,7 +67,7 @@ export function Testimonials() {
                 className="mb-6 italic"
                 style={{
                   fontFamily: 'var(--font-body)',
-                  fontSize: '14px',
+                  fontSize: '16px',
                   lineHeight: '1.6',
                   color: 'var(--brand-dark-text)',
                   opacity: 0.9
@@ -80,7 +80,7 @@ export function Testimonials() {
               <p
                 style={{
                   fontFamily: 'var(--font-body)',
-                  fontSize: '13px',
+                  fontSize: '15px',
                   fontWeight: '500',
                   color: 'var(--brand-dark-text)'
                 }}

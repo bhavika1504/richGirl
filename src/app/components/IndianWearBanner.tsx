@@ -27,7 +27,7 @@ export function IndianWearBanner() {
               className="mb-6 opacity-90"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '14px',
+                fontSize: '16px',
                 lineHeight: '1.6',
                 color: 'var(--brand-mist-green)'
               }}
@@ -41,7 +41,7 @@ export function IndianWearBanner() {
                 backgroundColor: 'var(--brand-cta-green)',
                 borderRadius: '28px',
                 fontFamily: 'var(--font-body)',
-                fontSize: '14px',
+                fontSize: '15px',
                 fontWeight: '500'
               }}
             >

@@ -19,7 +19,7 @@ interface Product {
   };
 }
 
-// Format 1 Card (Arch Shape Top)
+// Format 1 Card (Rounded Rectangle)
 function ProductCardFormat1({ product, index, badge }: { product: Product; index: number; badge?: { text: string; className: string } }) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -40,15 +40,15 @@ function ProductCardFormat1({ product, index, badge }: { product: Product; index
       initial={{ opacity: 0, y: 30 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group flex flex-col items-center cursor-pointer"
+      className="group flex flex-col cursor-pointer"
     >
-      <Link to={`/product/${product.id}`} className="w-full flex flex-col items-center">
+      <Link to={`/product/${product.id}`} className="w-full flex flex-col">
         <div 
-          className="relative overflow-hidden w-full mb-4 shadow-sm group-hover:shadow-md transition-shadow duration-300"
-          style={{ aspectRatio: '3/4', borderRadius: '150px 150px 12px 12px', backgroundColor: '#f5f5f5' }}
+          className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5]"
+          style={{ aspectRatio: '3/4', borderRadius: '16px' }}
         >
           {badge && (
-            <span className={`absolute top-4 left-4 px-3 py-1 text-[10px] font-bold tracking-widest rounded-full uppercase z-10 shadow-sm ${badge.className}`} style={{ fontFamily: 'var(--font-body)' }}>
+            <span className={`absolute top-3 left-3 lg:top-4 lg:left-4 px-2.5 py-1 text-[10px] lg:text-[11px] font-bold tracking-widest rounded-full uppercase z-10 shadow-sm ${badge.className}`} style={{ fontFamily: 'var(--font-body)' }}>
               {badge.text}
             </span>
           )}
@@ -61,18 +61,18 @@ function ProductCardFormat1({ product, index, badge }: { product: Product; index
         </div>
         
         <h3
-          className="text-center mb-1.5 w-full truncate px-2"
-          style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(13px, 2vw, 15px)', color: '#2c4c3b', fontWeight: '600' }}
+          className="mb-1 lg:mb-1.5 w-full truncate"
+          style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 2.2vw, 16px)', color: '#2c4c3b', fontWeight: '600' }}
         >
           {product.name}
         </h3>
         
-        <div className="flex items-center justify-center gap-2.5">
-          <span style={{ fontFamily: 'var(--font-price)', fontSize: '15px', color: '#2c4c3b', fontWeight: '800' }}>
+        <div className="flex items-center gap-2.5">
+          <span style={{ fontFamily: 'var(--font-price)', fontSize: 'clamp(15px, 2.2vw, 17px)', color: '#2c4c3b', fontWeight: '800' }}>
             ₹{netPrice.toLocaleString()}
           </span>
           {(product.discount || 0) > 0 && (
-            <span className="line-through text-gray-400" style={{ fontFamily: 'var(--font-price)', fontSize: '12px' }}>
+            <span className="line-through text-gray-400" style={{ fontFamily: 'var(--font-price)', fontSize: 'clamp(12px, 1.8vw, 14px)' }}>
               ₹{product.price.toLocaleString()}
             </span>
           )}
@@ -86,27 +86,27 @@ function ProductCardFormat1({ product, index, badge }: { product: Product; index
 function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) {
   if (products.length === 0) return null;
   return (
-    <section className="py-12 lg:py-16 bg-[#fdfcfb] border-b border-gray-100">
+    <section className="py-8 lg:py-14 bg-[#fdfcfb] border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
-        <div className="flex flex-col items-center text-center mb-10 lg:mb-14 relative">
-          <h2 className="uppercase tracking-widest text-[#2c4c3b] mb-2 font-bold" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(24px, 4vw, 32px)' }}>
+        <div className="flex flex-col items-center text-center mb-6 lg:mb-12 relative">
+          <h2 className="uppercase tracking-widest text-[#2c4c3b] mb-1.5 lg:mb-2 font-bold" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(22px, 4vw, 32px)' }}>
             {title}
           </h2>
-          <p className="text-gray-500" style={{ fontFamily: 'var(--font-body)', fontSize: '14px' }}>
+          <p className="text-gray-500" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 2vw, 16px)' }}>
             {subtitle}
           </p>
-          <Link to="/shop" className="text-[11px] font-bold tracking-widest text-[#2c4c3b] hover:text-[#4a725b] transition-colors absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1.5">
+          <Link to="/shop" className="text-[12px] lg:text-[13px] font-bold tracking-widest text-[#2c4c3b] hover:text-[#4a725b] transition-colors absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1.5">
             VIEW ALL <span>→</span>
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10 lg:gap-x-8 lg:gap-y-14">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-6 lg:gap-x-6 lg:gap-y-10">
           {products.map((product: any, index: number) => (
             <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} />
           ))}
         </div>
-        <div className="mt-10 text-center lg:hidden">
-          <Link to="/shop" className="text-[11px] font-bold tracking-widest text-[#2c4c3b] inline-flex items-center gap-1.5 border-b border-[#2c4c3b] pb-0.5">
+        <div className="mt-6 lg:mt-10 text-center lg:hidden">
+          <Link to="/shop" className="text-[12px] font-bold tracking-widest text-[#2c4c3b] inline-flex items-center gap-1.5 border-b border-[#2c4c3b] pb-0.5">
              VIEW ALL <span>→</span>
           </Link>
         </div>
@@ -119,46 +119,46 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
 function NewArrivalsSection({ products, badgeGetter }: any) {
   if (products.length === 0) return null;
   return (
-    <section className="bg-[#293526] py-14 lg:py-20 overflow-hidden relative border-b border-gray-100">
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-10 lg:gap-14 relative z-10">
+    <section className="bg-[#293526] py-10 lg:py-16 overflow-hidden relative border-b border-gray-100">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-6 lg:gap-14 relative z-10">
         
         {/* Left Banner Info */}
-        <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-4 lg:mb-0">
-          <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[10px] font-bold mb-3">Just Landed</p>
-          <h2 className="text-[#f7f5f0] uppercase tracking-wide leading-tight mb-4" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(32px, 5vw, 44px)', fontWeight: '300' }}>
+        <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-2 lg:mb-0">
+          <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[11px] lg:text-[12px] font-bold mb-2 lg:mb-3">Just Landed</p>
+          <h2 className="text-[#f7f5f0] uppercase tracking-wide leading-tight mb-3 lg:mb-4" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: '300' }}>
             NEW<br/>ARRIVALS
           </h2>
           <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 17px)' }}>
             Be the first to own the latest trends.
           </p>
-          <Link to="/shop" className="mt-10 text-[#f7f5f0] text-[11px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 hidden lg:inline-flex items-center gap-2">
+          <Link to="/shop" className="mt-8 lg:mt-10 text-[#f7f5f0] text-[12px] lg:text-[13px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 hidden lg:inline-flex items-center gap-2">
              VIEW ALL COLLECTION <span>→</span>
           </Link>
         </div>
 
         {/* Right Scrolling Products */}
-        <div className="lg:w-3/4 w-full overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-4">
-          <div className="flex gap-5 lg:gap-8 w-max pe-4 lg:pe-12">
+        <div className="lg:w-3/4 w-full overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-2 lg:pb-4">
+          <div className="flex gap-3 lg:gap-6 w-max pe-4 lg:pe-12">
             {products.map((product: any, index: number) => {
                const badge = badgeGetter(product);
                return (
-                 <motion.div key={product.id} initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ delay: index*0.1 }} className="snap-start w-[160px] lg:w-[220px]">
-                   <Link to={`/product/${product.id}`} className="group flex flex-col items-center">
+                 <motion.div key={product.id} initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ delay: index*0.1 }} className="snap-start w-[140px] lg:w-[210px]">
+                   <Link to={`/product/${product.id}`} className="group flex flex-col">
                      <div 
-                       className="relative overflow-hidden w-full mb-4 bg-black/20 transition-transform duration-300 group-hover:-translate-y-2" 
-                       style={{ aspectRatio: '3/4', borderRadius: '150px 150px 12px 12px' }}
+                       className="relative overflow-hidden w-full mb-3 bg-black/20 transition-transform duration-300 group-hover:-translate-y-2" 
+                       style={{ aspectRatio: '3/4', borderRadius: '14px' }}
                      >
                        {badge && (
-                         <span className="absolute top-3 left-3 px-2 py-0.5 text-[9px] font-bold tracking-widest rounded-full uppercase z-10 bg-[#a4b49d] text-white">
+                         <span className="absolute top-2.5 left-2.5 lg:top-3 lg:left-3 px-2 py-0.5 text-[9px] lg:text-[10px] font-bold tracking-widest rounded-full uppercase z-10 bg-[#a4b49d] text-white">
                            {badge.text}
                          </span>
                        )}
                        <img src={product.image || (product.images && product.images[0]) || ''} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                      </div>
-                     <h3 className="text-center mb-1.5 w-full truncate px-2 text-[#f7f5f0]" style={{ fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500' }}>
+                     <h3 className="mb-1 w-full truncate text-[#f7f5f0]" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(13px, 2vw, 15px)', fontWeight: '500' }}>
                        {product.name}
                      </h3>
-                     <p className="text-center text-[#a4b49d]" style={{ fontFamily: 'var(--font-price)', fontSize: '14px', fontWeight: '700' }}>
+                     <p className="text-[#a4b49d]" style={{ fontFamily: 'var(--font-price)', fontSize: 'clamp(14px, 2vw, 16px)', fontWeight: '700' }}>
                        ₹{Math.round(product.price * (1 - (product.discount || 0) / 100)).toLocaleString()}
                      </p>
                    </Link>
@@ -168,7 +168,7 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
           </div>
         </div>
         
-        <Link to="/shop" className="text-[#f7f5f0] text-[11px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 inline-flex items-center gap-2 lg:hidden mt-4">
+        <Link to="/shop" className="text-[#f7f5f0] text-[12px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 inline-flex items-center gap-2 lg:hidden mt-2">
            VIEW ALL COLLECTION <span>→</span>
         </Link>
       </div>
