@@ -224,35 +224,39 @@ async function seedInitialData() {
       console.log('👷 Employee user employee@richgirl.com seeded successfully.');
     }
     // Seed Categories (synchronized with seedCategories.js)
-    // Deactivate all existing categories first so legacy ones disappear from frontend
-    await Category.updateMany({}, { isActive: false });
+    // Only seed if there are no active categories in the database to prevent deactivating them on cold starts
+    const activeCategoryCount = await Category.countDocuments({ isActive: true });
+    if (activeCategoryCount === 0) {
+      console.log('No categories found. Seeding initial categories...');
+      const categoriesToSeed = [
+        { name: '3-Piece Suits', type: 'indian', slug: '3-piece-suits', image: '/assets/3PieceDress.jpg' },
+        { name: 'Cord sets', type: 'indian', slug: 'cord-sets-indian', image: '/assets/indianCordSet.jpg' },
+        { name: 'Tunics', type: 'indian', slug: 'tunics-indian', image: '/assets/tunic.jpg' },
+        { name: 'Kurtis', type: 'indian', slug: 'kurtis', image: '/assets/kurti.jpg' },
+        
+        { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
+        { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
+        { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/western-cordset.jpg' }
+      ];
 
-    const categoriesToSeed = [
-      { name: '3-Piece Suits', type: 'indian', slug: '3-piece-suits', image: '/assets/3PieceDress.jpg' },
-      { name: 'Cord sets', type: 'indian', slug: 'cord-sets-indian', image: '/assets/indianCordSet.jpg' },
-      { name: 'Tunics', type: 'indian', slug: 'tunics-indian', image: '/assets/tunic.jpg' },
-      { name: 'Kurtis', type: 'indian', slug: 'kurtis', image: '/assets/kurti.jpg' },
-      
-      { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
-      { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
-      { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/westernCordSet.jpg' }
-    ];
-
-    for (const cat of categoriesToSeed) {
-      await Category.findOneAndUpdate(
-        { slug: cat.slug },
-        {
-          name: cat.name,
-          slug: cat.slug,
-          type: cat.type,
-          image: cat.image,
-          isActive: true,
-          displayOrder: 10
-        },
-        { upsert: true }
-      );
+      for (const cat of categoriesToSeed) {
+        await Category.findOneAndUpdate(
+          { slug: cat.slug },
+          {
+            name: cat.name,
+            slug: cat.slug,
+            type: cat.type,
+            image: cat.image,
+            isActive: true,
+            displayOrder: 10
+          },
+          { upsert: true }
+        );
+      }
+      console.log('✅ Categories synchronized successfully');
+    } else {
+      console.log('ℹ️ Categories already exist. Skipping automatic seeding.');
     }
-    console.log('✅ Categories synchronized successfully');
   } catch (err) {
     console.error('Error seeding data on startup:', err);
   }
