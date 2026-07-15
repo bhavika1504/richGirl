@@ -78,7 +78,7 @@ export function RelatedProducts({ category, currentProductId }: RelatedProductsP
       </h2>
 
       <div className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-5 lg:min-w-0 min-w-max lg:w-auto w-[calc(100vw+200px)]">
+        <div className="grid grid-cols-3 lg:grid-cols-4 gap-2 lg:gap-5 lg:min-w-0 min-w-max lg:w-auto w-[calc(100vw+200px)]">
           {products.map((product) => (
             <Link
               key={product.id}
@@ -100,7 +100,7 @@ export function RelatedProducts({ category, currentProductId }: RelatedProductsP
                   style={{
                     fontFamily: 'var(--font-body)',
                     fontSize: '13px',
-                    fontWeight: '500',
+                    fontWeight: '700',
                     color: 'var(--brand-dark-text)'
                   }}
                 >

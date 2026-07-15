@@ -61,8 +61,8 @@ function ProductCardFormat1({ product, index, badge }: { product: Product; index
         </div>
         
         <h3
-          className="mb-1 lg:mb-1.5 w-full truncate"
-          style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 2.2vw, 16px)', color: '#2c4c3b', fontWeight: '600' }}
+          className="mb-1 lg:mb-1.5 w-full truncate font-bold"
+          style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 2.2vw, 16px)', color: '#2c4c3b' }}
         >
           {product.name}
         </h3>
@@ -100,7 +100,7 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-3 gap-y-6 lg:gap-x-6 lg:gap-y-10">
+        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10">
           {products.map((product: any, index: number) => (
             <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} />
           ))}
@@ -125,10 +125,10 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
         {/* Left Banner Info */}
         <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-2 lg:mb-0">
           <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[11px] lg:text-[12px] font-bold mb-2 lg:mb-3">Just Landed</p>
-          <h2 className="text-[#f7f5f0] uppercase tracking-wide leading-tight mb-3 lg:mb-4" style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(28px, 5vw, 44px)', fontWeight: '300' }}>
-            NEW<br/>ARRIVALS
+          <h2 className="text-[#f7f5f0] leading-tight mb-3 lg:mb-4" style={{ fontFamily: 'var(--font-lobster)', fontSize: 'clamp(32px, 5.5vw, 48px)' }}>
+            New Arrivals
           </h2>
-          <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(15px, 2vw, 17px)' }}>
+          <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 1.8vw, 16px)' }}>
             Be the first to own the latest trends.
           </p>
           <Link to="/shop" className="mt-8 lg:mt-10 text-[#f7f5f0] text-[12px] lg:text-[13px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 hidden lg:inline-flex items-center gap-2">
@@ -142,7 +142,7 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
             {products.map((product: any, index: number) => {
                const badge = badgeGetter(product);
                return (
-                 <motion.div key={product.id} initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ delay: index*0.1 }} className="snap-start w-[140px] lg:w-[210px]">
+                 <motion.div key={product.id} initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }} transition={{ delay: index*0.1 }} className="snap-start w-[120px] lg:w-[180px]">
                    <Link to={`/product/${product.id}`} className="group flex flex-col">
                      <div 
                        className="relative overflow-hidden w-full mb-3 bg-black/20 transition-transform duration-300 group-hover:-translate-y-2" 
@@ -155,7 +155,7 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
                        )}
                        <img src={product.image || (product.images && product.images[0]) || ''} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                      </div>
-                     <h3 className="mb-1 w-full truncate text-[#f7f5f0]" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(13px, 2vw, 15px)', fontWeight: '500' }}>
+                     <h3 className="mb-1 w-full truncate text-[#f7f5f0] font-bold" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(13px, 2vw, 15px)' }}>
                        {product.name}
                      </h3>
                      <p className="text-[#a4b49d]" style={{ fontFamily: 'var(--font-price)', fontSize: 'clamp(14px, 2vw, 16px)', fontWeight: '700' }}>

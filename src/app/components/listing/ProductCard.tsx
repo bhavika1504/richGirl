@@ -130,7 +130,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: 'clamp(13px, 2.2vw, 15px)',
-              fontWeight: '500',
+              fontWeight: '700',
               color: 'var(--brand-dark-text)'
             }}
           >

@@ -26,10 +26,10 @@ export function CategoryScroll() {
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-2 mb-6 lg:mb-8 px-2 lg:px-0 border-b border-[#e5e5e5]/60 pb-3">
         <div>
           <h3
-            className="text-xl lg:text-2xl font-extrabold text-[#2c4c3b] uppercase tracking-widest flex items-center gap-2 mb-1"
+            className="text-lg lg:text-xl font-extrabold text-[#2c4c3b] uppercase tracking-widest flex items-center gap-2 mb-1"
             style={{ fontFamily: 'var(--font-headline)' }}
           >
-            {title} <Sparkles className="w-5 h-5 text-[#a4b49d]" />
+            {title}
           </h3>
           <p className="text-gray-500 text-[14px] lg:text-[15px] font-medium" style={{ fontFamily: 'var(--font-body)' }}>
             {subtitle}
@@ -53,7 +53,7 @@ export function CategoryScroll() {
             <Link
               key={index}
               to={`/shop/${category.name.toLowerCase().replace(/ /g, '-')}`}
-              className="flex-shrink-0 snap-start group block w-[140px] lg:w-[220px]"
+              className="flex-shrink-0 snap-start group block w-[120px] lg:w-[180px]"
             >
               <div className="relative mb-4 lg:mb-6">
                 {/* Arch Image */}
@@ -72,11 +72,6 @@ export function CategoryScroll() {
                   <div className="absolute inset-0 bg-[#2c4c3b]/0 group-hover:bg-[#2c4c3b]/10 transition-colors duration-300 pointer-events-none" />
                 </div>
                 
-                {/* Side Badge */}
-                <div className="absolute top-1/2 -left-3.5 -translate-y-1/2 w-8 h-8 bg-[#fdfcfb] rounded-full border border-[#e8e4db] flex items-center justify-center shadow-sm z-10 transition-transform group-hover:scale-110">
-                   <Sparkles className="w-3.5 h-3.5 text-[#a4b49d]" />
-                </div>
-
                 {/* Bottom Title Pill */}
                 <div className="absolute -bottom-4 left-4 right-4 bg-[#fdfcfb] border border-[#e8e4db] rounded-full px-4 py-2.5 flex items-center justify-between shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1 z-20">
                   <span
@@ -107,21 +102,14 @@ export function CategoryScroll() {
   );
 
   return (
-    <section className="py-10 lg:py-16 bg-[#fdfcfb] border-b border-[#e5e5e5]/50 relative overflow-hidden">
+    <section className="py-6 lg:py-10 bg-[#fdfcfb] border-b border-[#e5e5e5]/50 relative overflow-hidden">
       {/* Subtle Background Elements */}
       <div className="absolute -left-20 top-40 w-64 h-64 bg-[#f4f2eb] rounded-full blur-3xl opacity-50 pointer-events-none"></div>
       <div className="absolute -right-20 bottom-40 w-80 h-80 bg-[#f4f2eb] rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12 relative z-10">
         {/* Main Header */}
-        <div className="text-center mb-8 lg:mb-14">
-          <div className="flex items-center justify-center gap-3 mb-3">
-             <Sparkles className="w-3 h-3 text-[#c2b48d]" />
-             <p className="text-[#a4b49d] italic text-base lg:text-lg" style={{ fontFamily: 'serif' }}>
-               Shop By Category
-             </p>
-             <Sparkles className="w-3 h-3 text-[#c2b48d]" />
-          </div>
+        <div className="text-center mb-6 lg:mb-10">
           <h2
             className="text-2xl lg:text-[40px] font-medium text-[#2c4c3b] uppercase tracking-wider"
             style={{ fontFamily: 'var(--font-headline)' }}
