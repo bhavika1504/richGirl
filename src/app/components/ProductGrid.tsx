@@ -44,7 +44,7 @@ function ProductCardFormat1({ product, index, badge }: { product: Product; index
     >
       <Link to={`/product/${product.id}`} className="w-full flex flex-col">
         <div 
-          className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5] max-h-[160px] lg:max-h-[240px]"
+          className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5] lg:max-h-[240px]"
           style={{ aspectRatio: '3/4', borderRadius: '16px' }}
         >
           {badge && (
