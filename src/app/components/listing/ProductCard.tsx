@@ -63,7 +63,7 @@ export function ProductCard({ product, index }: ProductCardProps) {
         }}
       >
         {/* Image Area */}
-        <div className="relative overflow-hidden" style={{ borderRadius: '14px 14px 0 0', aspectRatio: '3/4' }}>
+        <div className="relative overflow-hidden max-h-[160px] lg:max-h-[240px]" style={{ borderRadius: '14px 14px 0 0', aspectRatio: '3/4' }}>
           <img
             src={product.images?.[0] || product.image}
             alt={product.name}
