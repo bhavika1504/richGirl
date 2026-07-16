@@ -100,7 +100,7 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
           </Link>
         </div>
         
-        <div className="grid grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10">
+        <div className="grid grid-cols-2 lg:grid-cols-2 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10">
           {products.map((product: any, index: number) => (
             <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} />
           ))}
@@ -119,16 +119,16 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
 function NewArrivalsSection({ products, badgeGetter }: any) {
   if (products.length === 0) return null;
   return (
-    <section className="bg-[#293526] py-10 lg:py-16 overflow-hidden relative border-b border-gray-100">
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-6 lg:gap-14 relative z-10">
+    <section className="bg-[#293526] py-6 lg:py-16 overflow-hidden relative border-b border-gray-100">
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-12 flex flex-col lg:flex-row items-center gap-4 lg:gap-14 relative z-10">
         
         {/* Left Banner Info */}
-        <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-2 lg:mb-0">
-          <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[11px] lg:text-[12px] font-bold mb-2 lg:mb-3">Just Landed</p>
-          <h2 className="text-[#f7f5f0] leading-tight mb-3 lg:mb-4" style={{ fontFamily: 'var(--font-lobster)', fontSize: 'clamp(32px, 5.5vw, 48px)' }}>
+        <div className="lg:w-1/4 flex flex-col items-center lg:items-start text-center lg:text-left shrink-0 mb-0">
+          <p className="text-[#a4b49d] uppercase tracking-[0.25em] text-[11px] lg:text-[12px] font-bold mb-2 lg:mb-3 hidden lg:block">Just Landed</p>
+          <h2 className="text-[#f7f5f0] leading-tight mb-0 lg:mb-4" style={{ fontFamily: 'var(--font-lobster)', fontSize: 'clamp(32px, 5.5vw, 48px)' }}>
             New Arrivals
           </h2>
-          <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 1.8vw, 16px)' }}>
+          <p className="text-[#d0d8cc] italic hidden lg:block" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 1.8vw, 16px)' }}>
             Be the first to own the latest trends.
           </p>
           <Link to="/shop" className="mt-8 lg:mt-10 text-[#f7f5f0] text-[12px] lg:text-[13px] font-bold tracking-widest hover:text-white transition-colors border-b border-[#f7f5f0]/30 hover:border-white pb-1 hidden lg:inline-flex items-center gap-2">

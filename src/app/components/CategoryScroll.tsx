@@ -73,15 +73,15 @@ export function CategoryScroll() {
                 </div>
                 
                 {/* Bottom Title Pill */}
-                <div className="absolute -bottom-4 left-4 right-4 bg-[#fdfcfb] border border-[#e8e4db] rounded-full px-4 py-2.5 flex items-center justify-between shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1 z-20">
+                <div className="absolute -bottom-4 left-1.5 right-1.5 lg:left-4 lg:right-4 bg-[#fdfcfb] border border-[#e8e4db] rounded-full px-2 lg:px-4 py-2 lg:py-2.5 flex items-center justify-between shadow-sm group-hover:shadow-md transition-all group-hover:-translate-y-1 z-20">
                   <span
-                    className="text-[12px] lg:text-sm font-bold text-[#2c4c3b] truncate"
+                    className="text-[10px] lg:text-sm font-bold text-[#2c4c3b] truncate"
                     style={{ fontFamily: 'var(--font-body)' }}
                   >
                     {category.name}
                   </span>
-                  <div className="w-5 h-5 rounded-full border border-[#d0d8cc] flex items-center justify-center bg-white group-hover:bg-[#2c4c3b] group-hover:border-[#2c4c3b] transition-colors shrink-0">
-                    <ArrowRight className="w-3 h-3 text-[#2c4c3b] group-hover:text-white" />
+                  <div className="w-4 h-4 lg:w-5 lg:h-5 rounded-full border border-[#d0d8cc] flex items-center justify-center bg-white group-hover:bg-[#2c4c3b] group-hover:border-[#2c4c3b] transition-colors shrink-0">
+                    <ArrowRight className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-[#2c4c3b] group-hover:text-white" />
                   </div>
                 </div>
               </div>
