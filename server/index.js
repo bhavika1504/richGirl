@@ -138,6 +138,14 @@ const connectDB = async () => {
     });
     mongoConnected = true;
     console.log(`✅ Connected to MongoDB Atlas.`);
+    
+    // Drop unique email index if exists to allow guest checkout with null/duplicate emails
+    try {
+      await mongoose.connection.db.collection('users').dropIndex('email_1');
+      console.log('✅ Dropped email_1 index successfully.');
+    } catch (indexErr) {
+      // index might not exist or already be dropped
+    }
   } catch (err) {
     console.error('❌ MongoDB connection failed:', err.message);
     throw err;
