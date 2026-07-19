@@ -688,18 +688,49 @@ app.post('/api/orders', async (req, res) => {
       }
       let guestUser = await User.findOne({ phone: shippingAddress.phone });
       if (!guestUser) {
-        guestUser = new User({
-          name: shippingAddress.fullName,
-          phone: shippingAddress.phone,
-          email: shippingAddress.email || undefined,
-          role: 'customer',
-          isVerified: true
-        });
-        await guestUser.save();
-      } else if (shippingAddress.email && !guestUser.email) {
-        // Update guest email if they now provided it
-        guestUser.email = shippingAddress.email;
-        await guestUser.save();
+        try {
+          guestUser = new User({
+            name: shippingAddress.fullName,
+            phone: shippingAddress.phone,
+            email: (shippingAddress.email && shippingAddress.email.trim() !== '') ? shippingAddress.email : undefined,
+            role: 'customer',
+            isVerified: true
+          });
+          await guestUser.save();
+        } catch (saveErr) {
+          console.error("Failed to create guest user in DB:", saveErr);
+          // If duplicate email error, retry without email
+          if (saveErr.code === 11000) {
+            guestUser = new User({
+              name: shippingAddress.fullName,
+              phone: shippingAddress.phone,
+              role: 'customer',
+              isVerified: true
+            });
+            await guestUser.save();
+          } else {
+            throw saveErr;
+          }
+        }
+      } else {
+        // Update details if they are empty
+        let updated = false;
+        if (shippingAddress.email && shippingAddress.email.trim() !== '' && !guestUser.email) {
+          guestUser.email = shippingAddress.email;
+          updated = true;
+        }
+        if (shippingAddress.fullName && !guestUser.name) {
+          guestUser.name = shippingAddress.fullName;
+          updated = true;
+        }
+        if (updated) {
+          try {
+            await guestUser.save();
+          } catch (updateErr) {
+            console.error("Failed to update guest user details:", updateErr);
+            // Ignore email save error if it's a duplicate, just keep placing the order
+          }
+        }
       }
       finalUserId = guestUser._id;
     }
@@ -754,6 +785,7 @@ app.post('/api/orders', async (req, res) => {
 
     res.status(201).json(newOrder);
   } catch (error) {
+    console.error("Failed to place order:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 });

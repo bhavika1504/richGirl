@@ -28,6 +28,7 @@ export function Cart() {
   const [isRazorpayOpen, setIsRazorpayOpen] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'Razorpay'>('Razorpay');
+  const [checkoutStep, setCheckoutStep] = useState<'details' | 'summary'>('details');
   const [address, setAddress] = useState({
     fullName: '',
     phone: '',
@@ -187,7 +188,17 @@ export function Cart() {
       setShowAddressForm(true);
     }
 
+    setCheckoutStep('details');
     setIsCheckoutOpen(true);
+  };
+
+  const handleDetailsSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!address.fullName || !address.phone || !address.street || !address.city || !address.state || !address.zip || !address.country) {
+      alert('Please fill all required address fields');
+      return;
+    }
+    setCheckoutStep('summary');
   };
 
 
@@ -416,7 +427,7 @@ export function Cart() {
                 className="w-full py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold text-lg transition-transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-black/5 cursor-pointer"
                 style={{ fontFamily: 'var(--font-body)' }}
               >
-                PLACE ORDER
+                PROCEED TO ORDER
               </button>
 
               <div className="mt-6 p-4 bg-[var(--brand-mist-green)] rounded-xl border border-[#C8E8C0] flex items-center gap-3">
@@ -435,7 +446,7 @@ export function Cart() {
       {/* CHECKOUT MODAL */}
       {isCheckoutOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 p-8 relative">
+          <div className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl border border-gray-100 p-8 relative animate-in fade-in zoom-in duration-200">
             <button
               onClick={() => setIsCheckoutOpen(false)}
               className="absolute right-6 top-6 p-2 hover:bg-gray-100 rounded-full transition-colors cursor-pointer"
@@ -443,200 +454,224 @@ export function Cart() {
               <X className="w-6 h-6 text-gray-400 hover:text-gray-700" />
             </button>
 
-            <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>
-              {showAddressForm ? 'Delivery Address' : 'Select Delivery Address'}
-            </h3>
-
-            {!showAddressForm && savedAddresses.length > 0 ? (
-              <div className="space-y-4 mb-8">
-                {savedAddresses.map((addr) => (
-                  <button
-                    key={addr._id}
-                    onClick={() => {
-                      setSelectedAddressId(addr._id);
-                      setAddress(addr);
-                    }}
-                    className={`w-full text-left p-5 border-2 rounded-2xl transition-all ${selectedAddressId === addr._id
-                      ? 'border-[var(--brand-cta-green)] bg-emerald-50'
-                      : 'border-gray-100 hover:border-gray-200'
-                      }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-bold text-gray-900">{addr.fullName}</span>
-                      {addr.isDefault && (
-                        <span className="text-[9px] bg-[var(--brand-cta-green)] text-white px-2 py-0.5 rounded-full uppercase font-bold">Default</span>
-                      )}
+            {checkoutStep === 'details' ? (
+              <>
+                <h3 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: 'var(--font-headline)' }}>
+                  Delivery Details
+                </h3>
+                <form onSubmit={handleDetailsSubmit} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Full Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={address.fullName}
+                        onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="e.g. Rahul Sharma"
+                      />
                     </div>
-                    <p className="text-sm text-gray-600 mb-2 leading-relaxed">{addr.street}, {addr.city}, {addr.state} - {addr.zip}</p>
-                    <p className="text-sm text-gray-500 font-medium">📞 {addr.phone}</p>
-                  </button>
-                ))}
-                <button
-                  onClick={() => {
-                    setShowAddressForm(true);
-                    setSelectedAddressId(null);
-                    setAddress({ fullName: address.fullName, phone: address.phone, street: '', city: '', state: '', zip: '', country: 'India', email: address.email || '' });
-                  }}
-                  className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-[var(--brand-cta-green)] font-bold hover:border-[var(--brand-cta-green)] hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <Plus className="w-4 h-4" />
-                  ADD NEW ADDRESS
-                </button>
-              </div>
-            ) : (
-              <form onSubmit={(e) => { e.preventDefault(); setIsCheckoutOpen(false); handleProcessRazorpay(); }} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
-                {savedAddresses.length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAddressForm(false)}
-                    className="text-xs font-bold text-[var(--brand-cta-green)] hover:underline mb-4 flex items-center gap-1"
-                  >
-                    <ArrowLeft className="w-3 h-3" /> USE SAVED ADDRESS
-                  </button>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Full Name *</label>
-                    <input
-                      type="text"
-                      required
-                      value={address.fullName}
-                      onChange={(e) => setAddress({ ...address, fullName: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="e.g. Rahul Sharma"
-                    />
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Mobile Number *</label>
+                      <input
+                        type="tel"
+                        required
+                        pattern="[0-9]{10}"
+                        value={address.phone}
+                        onChange={(e) => setAddress({ ...address, phone: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="10-digit mobile"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Mobile Number *</label>
-                    <input
-                      type="tel"
-                      required
-                      pattern="[0-9]{10}"
-                      value={address.phone}
-                      onChange={(e) => setAddress({ ...address, phone: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="10-digit mobile"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Street Address *</label>
-                    <input
-                      type="text"
-                      required
-                      value={address.street}
-                      onChange={(e) => setAddress({ ...address, street: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="House No, Building, Area"
-                    />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Street Address *</label>
+                      <input
+                        type="text"
+                        required
+                        value={address.street}
+                        onChange={(e) => setAddress({ ...address, street: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="House No, Building, Area"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">PIN Code *</label>
+                      <input
+                        type="text"
+                        required
+                        pattern="[0-9]{6}"
+                        value={address.zip}
+                        onChange={(e) => setAddress({ ...address, zip: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="6-digit ZIP"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">PIN Code *</label>
-                    <input
-                      type="text"
-                      required
-                      pattern="[0-9]{6}"
-                      value={address.zip}
-                      onChange={(e) => setAddress({ ...address, zip: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="6-digit ZIP"
-                    />
-                  </div>
-                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">State *</label>
-                    <select
-                      required
-                      value={address.state}
-                      onChange={(e) => setAddress({ ...address, state: e.target.value, city: '' })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium appearance-none cursor-pointer"
-                    >
-                      <option value="">Select State</option>
-                      {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">City *</label>
-                    {checkoutAvailableCities.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">State *</label>
                       <select
                         required
-                        value={address.city}
-                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        value={address.state}
+                        onChange={(e) => setAddress({ ...address, state: e.target.value, city: '' })}
                         className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium appearance-none cursor-pointer"
                       >
-                        <option value="">Select City</option>
-                        {checkoutAvailableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                        <option value="">Select State</option>
+                        {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                       </select>
-                    ) : (
-                      <input type="text" disabled placeholder="Select a state first"
-                        className="w-full bg-gray-100 border border-gray-200 rounded-2xl py-3.5 px-4 text-sm text-gray-400 cursor-not-allowed" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">City *</label>
+                      {checkoutAvailableCities.length > 0 ? (
+                        <select
+                          required
+                          value={address.city}
+                          onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium appearance-none cursor-pointer"
+                        >
+                          <option value="">Select City</option>
+                          {checkoutAvailableCities.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      ) : (
+                        <input type="text" disabled placeholder="Select a state first"
+                          className="w-full bg-gray-100 border border-gray-200 rounded-2xl py-3.5 px-4 text-sm text-gray-400 cursor-not-allowed" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Country *</label>
+                      <input
+                        type="text"
+                        required
+                        value={address.country}
+                        onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="e.g. India"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Email Address (Optional)</label>
+                      <input
+                        type="email"
+                        value={address.email}
+                        onChange={(e) => setAddress({ ...address, email: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="e.g. rahul@example.com"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex gap-4 pt-6 border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={() => setIsCheckoutOpen(false)}
+                      className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all active:scale-[0.98] cursor-pointer text-sm"
+                    >
+                      CANCEL
+                    </button>
+                    <button
+                      type="submit"
+                      className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 cursor-pointer text-sm"
+                    >
+                      PROCEED TO SUMMARY
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : (
+              <>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4" style={{ fontFamily: 'var(--font-headline)' }}>
+                  Order & Shipping Summary
+                </h3>
+
+                <div className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
+                  {/* Shipping Details Review */}
+                  <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100 relative">
+                    <button
+                      onClick={() => setCheckoutStep('details')}
+                      className="absolute right-4 top-4 text-xs font-bold text-[var(--brand-cta-green)] hover:underline cursor-pointer"
+                    >
+                      EDIT DETAILS
+                    </button>
+                    <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest mb-3">Shipping Address</h4>
+                    <p className="font-bold text-gray-900 text-sm mb-1">{address.fullName}</p>
+                    <p className="text-xs text-gray-600 mb-1">{address.street}, {address.city}, {address.state} - {address.zip}, {address.country}</p>
+                    <p className="text-xs text-gray-500 font-medium">📞 {address.phone} {address.email ? ` | ✉️ ${address.email}` : ''}</p>
+                  </div>
+
+                  {/* Items List Summary */}
+                  <div className="max-h-[220px] overflow-y-auto pr-1 space-y-3">
+                    <h4 className="text-xs font-extrabold text-gray-400 uppercase tracking-widest">Items in your Order</h4>
+                    {items.map((item) => (
+                      <div key={`${item.id}-${item.size}-${item.color}`} className="flex items-center gap-3 py-1 border-b border-gray-100 last:border-0">
+                        <img src={item.image} alt={item.name} className="w-10 h-12 object-cover rounded-md bg-gray-50" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-gray-900 truncate">{item.name}</p>
+                          <p className="text-[10px] text-gray-500">Size: {item.size} | Color: {item.color} | Qty: {item.quantity}</p>
+                        </div>
+                        <span className="text-xs font-bold text-gray-900">₹{(item.price * item.quantity).toLocaleString()}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Pricing Breakdown */}
+                  <div className="border-t border-dashed border-gray-200 pt-4 space-y-2">
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Subtotal</span>
+                      <span>₹{subtotal.toLocaleString()}</span>
+                    </div>
+                    {discount > 0 && (
+                      <div className="flex justify-between text-xs text-[var(--brand-cta-green)]">
+                        <span>Bag Discount</span>
+                        <span>-₹{discount.toLocaleString()}</span>
+                      </div>
                     )}
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Shipping Fee</span>
+                      <span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold text-gray-900 pt-1 border-t border-gray-100">
+                      <span>Order Total</span>
+                      <span>₹{total.toLocaleString()}</span>
+                    </div>
+                  </div>
+
+                  {/* Payment Info */}
+                  <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-100">
+                    <p className="text-xs text-emerald-800 leading-tight">
+                      <b>Payment Option:</b> Secure online payment via Razorpay. UPI, Cards, Netbanking are supported.
+                    </p>
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex gap-4 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutStep('details')}
+                      className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all active:scale-[0.98] cursor-pointer text-sm"
+                    >
+                      BACK
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsCheckoutOpen(false);
+                        handleProcessRazorpay();
+                      }}
+                      className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 cursor-pointer text-sm"
+                    >
+                      PROCEED TO PAY
+                    </button>
                   </div>
                 </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Country *</label>
-                    <input
-                      type="text"
-                      required
-                      value={address.country}
-                      onChange={(e) => setAddress({ ...address, country: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="e.g. India"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Email Address (Optional)</label>
-                    <input
-                      type="email"
-                      value={address.email}
-                      onChange={(e) => setAddress({ ...address, email: e.target.value })}
-                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
-                      placeholder="e.g. rahul@example.com"
-                    />
-                  </div>
-                </div>
-              </form>
-            )}
-
-            {/* Payment Method Section (Only show after address selection/entry) */}
-            {(selectedAddressId || showAddressForm) && (
-              <div className="mt-8 pt-8 border-t border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 mb-2 uppercase tracking-widest">Payment Method</h4>
-                <p className="text-sm text-gray-600 mb-6 font-medium">Online Payment via Razorpay (UPI, Cards, Netbanking)</p>
-
-                <div className="flex gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setIsCheckoutOpen(false)}
-                    className="flex-1 py-4 border border-gray-200 rounded-2xl text-gray-500 font-bold hover:bg-gray-50 transition-all active:scale-[0.98] cursor-pointer text-sm"
-                  >
-                    CANCEL
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (showAddressForm) {
-                        if (!address.fullName || !address.phone || !address.street || !address.city || !address.state || !address.zip || !address.country) {
-                          alert('Please fill all required address fields');
-                          return;
-                        }
-                      }
-
-                      setIsCheckoutOpen(false);
-                      handleProcessRazorpay();
-                    }}
-                    className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 cursor-pointer text-sm"
-                  >
-                    PROCEED TO PAY
-                  </button>
-                </div>
-              </div>
+              </>
             )}
           </div>
         </div>
