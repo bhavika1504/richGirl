@@ -691,9 +691,14 @@ app.post('/api/orders', async (req, res) => {
         guestUser = new User({
           name: shippingAddress.fullName,
           phone: shippingAddress.phone,
+          email: shippingAddress.email || undefined,
           role: 'customer',
           isVerified: true
         });
+        await guestUser.save();
+      } else if (shippingAddress.email && !guestUser.email) {
+        // Update guest email if they now provided it
+        guestUser.email = shippingAddress.email;
         await guestUser.save();
       }
       finalUserId = guestUser._id;

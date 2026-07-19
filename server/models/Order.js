@@ -25,7 +25,8 @@ const orderSchema = new mongoose.Schema({
     city: { type: String, required: true },
     state: { type: String, required: true },
     zip: { type: String, required: true },
-    country: { type: String, default: 'India' }
+    country: { type: String, default: 'India' },
+    email: { type: String }
   },
   payment: {
     method: { type: String, required: true },

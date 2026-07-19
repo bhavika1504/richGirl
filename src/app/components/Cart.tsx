@@ -34,7 +34,9 @@ export function Cart() {
     street: '',
     city: '',
     state: '',
-    zip: ''
+    zip: '',
+    country: 'India',
+    email: ''
   });
   const [savedAddresses, setSavedAddresses] = useState<any[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -473,7 +475,7 @@ export function Cart() {
                   onClick={() => {
                     setShowAddressForm(true);
                     setSelectedAddressId(null);
-                    setAddress({ fullName: address.fullName, phone: address.phone, street: '', city: '', state: '', zip: '' });
+                    setAddress({ fullName: address.fullName, phone: address.phone, street: '', city: '', state: '', zip: '', country: 'India', email: address.email || '' });
                   }}
                   className="w-full py-4 border-2 border-dashed border-gray-200 rounded-2xl text-[var(--brand-cta-green)] font-bold hover:border-[var(--brand-cta-green)] hover:bg-emerald-50 transition-all flex items-center justify-center gap-2 cursor-pointer"
                 >
@@ -482,7 +484,7 @@ export function Cart() {
                 </button>
               </div>
             ) : (
-              <form onSubmit={(e) => { e.preventDefault(); setIsCheckoutOpen(false); if (paymentMethod === 'Razorpay') { handleProcessRazorpay(); } else { processOrderPlacement('COD', 'unpaid'); } }} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
+              <form onSubmit={(e) => { e.preventDefault(); setIsCheckoutOpen(false); handleProcessRazorpay(); }} className="space-y-6" style={{ fontFamily: 'var(--font-body)' }}>
                 {savedAddresses.length > 0 && (
                   <button
                     type="button"
@@ -575,41 +577,40 @@ export function Cart() {
                     )}
                   </div>
                 </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Country *</label>
+                    <input
+                      type="text"
+                      required
+                      value={address.country}
+                      onChange={(e) => setAddress({ ...address, country: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                      placeholder="e.g. India"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Email Address (Optional)</label>
+                    <input
+                      type="email"
+                      value={address.email}
+                      onChange={(e) => setAddress({ ...address, email: e.target.value })}
+                      className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                      placeholder="e.g. rahul@example.com"
+                    />
+                  </div>
+                </div>
               </form>
             )}
 
             {/* Payment Method Section (Only show after address selection/entry) */}
             {(selectedAddressId || showAddressForm) && (
               <div className="mt-8 pt-8 border-t border-gray-100">
-                <h4 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-widest">Payment Method</h4>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('Razorpay')}
-                    className={`p-4 border rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${paymentMethod === 'Razorpay'
-                      ? 'border-[var(--brand-cta-green)] bg-emerald-50 text-[var(--brand-cta-green)]'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                  >
-                    <CreditCard className="w-6 h-6" />
-                    <span className="text-xs font-bold">Online Payment</span>
-                    <span className="text-[9px] font-semibold text-gray-400">Cards, UPI, Netbanking</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('COD')}
-                    className={`p-4 border rounded-2xl flex flex-col items-center justify-center gap-2 cursor-pointer transition-all ${paymentMethod === 'COD'
-                      ? 'border-[var(--brand-cta-green)] bg-emerald-50 text-[var(--brand-cta-green)]'
-                      : 'border-gray-200 bg-white hover:bg-gray-50'
-                      }`}
-                  >
-                    <DollarSign className="w-6 h-6" />
-                    <span className="text-xs font-bold">Cash on Delivery</span>
-                    <span className="text-[9px] font-semibold text-gray-400">Pay at your door</span>
-                  </button>
-                </div>
+                <h4 className="text-sm font-bold text-gray-900 mb-2 uppercase tracking-widest">Payment Method</h4>
+                <p className="text-sm text-gray-600 mb-6 font-medium">Online Payment via Razorpay (UPI, Cards, Netbanking)</p>
 
-                <div className="flex gap-4 pt-8">
+                <div className="flex gap-4">
                   <button
                     type="button"
                     onClick={() => setIsCheckoutOpen(false)}
@@ -621,22 +622,18 @@ export function Cart() {
                     type="button"
                     onClick={() => {
                       if (showAddressForm) {
-                        if (!address.fullName || !address.phone || !address.street || !address.city || !address.state || !address.zip) {
+                        if (!address.fullName || !address.phone || !address.street || !address.city || !address.state || !address.zip || !address.country) {
                           alert('Please fill all required address fields');
                           return;
                         }
                       }
 
                       setIsCheckoutOpen(false);
-                      if (paymentMethod === 'Razorpay') {
-                        handleProcessRazorpay();
-                      } else {
-                        processOrderPlacement('COD', 'unpaid');
-                      }
+                      handleProcessRazorpay();
                     }}
                     className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 cursor-pointer text-sm"
                   >
-                    {paymentMethod === 'Razorpay' ? 'PROCEED TO PAY' : 'CONFIRM ORDER'}
+                    PROCEED TO PAY
                   </button>
                 </div>
               </div>
