@@ -42,20 +42,20 @@ export function OrderSuccess() {
     <div className="min-h-screen bg-[#F8F9F8] flex flex-col">
       <Navbar />
 
-      <main className="flex-grow max-w-xl mx-auto px-4 py-16 w-full flex flex-col items-center justify-center text-center">
-        <div className="w-20 h-20 bg-green-50 text-[var(--brand-cta-green)] rounded-full flex items-center justify-center mb-8 shadow-sm">
-          <CheckCircle2 className="w-12 h-12" />
+      <main className="flex-grow max-w-xl mx-auto px-4 py-8 lg:py-16 w-full flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 lg:w-20 lg:h-20 bg-green-50 text-[var(--brand-cta-green)] rounded-full flex items-center justify-center mb-6 lg:mb-8 shadow-sm">
+          <CheckCircle2 className="w-10 h-10 lg:w-12 lg:h-12" />
         </div>
 
-        <h1 className="text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'var(--font-headline)' }}>
+        <h1 className="text-2xl lg:text-4xl font-extrabold text-gray-900 mb-2" style={{ fontFamily: 'var(--font-headline)' }}>
           Order Confirmed!
         </h1>
-        <p className="text-gray-500 text-sm leading-relaxed max-w-sm mb-10" style={{ fontFamily: 'var(--font-body)' }}>
+        <p className="text-gray-500 text-xs lg:text-sm leading-relaxed max-w-sm mb-6 lg:mb-8" style={{ fontFamily: 'var(--font-body)' }}>
           Thank you for shopping with <b>RichGirl</b>. Your order has been placed and handed to our local courier partner.
         </p>
 
         {/* Order Info Card */}
-        <div className="bg-white rounded-3xl border border-gray-100 p-8 w-full shadow-sm mb-10 text-left" style={{ fontFamily: 'var(--font-body)' }}>
+        <div className="bg-white rounded-3xl border border-gray-100 p-6 lg:p-8 w-full shadow-sm mb-6 lg:mb-8 text-left" style={{ fontFamily: 'var(--font-body)' }}>
           <div className="flex justify-between items-center pb-4 border-b border-gray-50 mb-4">
             <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Order ID</span>
             <span className="text-sm font-extrabold text-gray-900">{order.orderId}</span>
@@ -77,20 +77,18 @@ export function OrderSuccess() {
           </div>
         </div>
 
+        {/* AWB Alert Message */}
+        <div className="bg-[var(--brand-mist-green)] rounded-2xl border border-[#C8E8C0] p-4 mb-6 lg:mb-8 text-center text-xs text-[var(--brand-dark-text)] font-semibold w-full leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+          ✉️ You will receive your AWB tracking number on your mobile number (+91 {order.shippingAddress?.phone || ''}) once shipped.
+        </div>
+
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row gap-4 w-full" style={{ fontFamily: 'var(--font-body)' }}>
-          <button 
-            onClick={() => navigate(`/track/${order.orderId}`)}
-            className="flex-1 py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-black/5 flex items-center justify-center gap-2 cursor-pointer text-sm"
-          >
-            TRACK COURIER ORDER <ArrowRight className="w-4 h-4" />
-          </button>
-          
+        <div className="w-full" style={{ fontFamily: 'var(--font-body)' }}>
           <button 
             onClick={() => navigate('/')}
-            className="flex-1 py-4 border border-gray-200 hover:bg-gray-50 text-gray-700 bg-white rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-sm"
+            className="w-full py-4 bg-[var(--brand-dark-text)] hover:bg-black text-white rounded-2xl font-bold transition-all active:scale-[0.98] flex items-center justify-center gap-2 cursor-pointer text-sm shadow-md"
           >
-            <Home className="w-4 h-4" /> BACK TO HOME
+            <Home className="w-4 h-4" /> CONTINUE SHOPPING
           </button>
         </div>
       </main>
