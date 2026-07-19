@@ -164,29 +164,24 @@ export function Cart() {
   };
 
   const handleCheckoutClick = () => {
-    const userId = localStorage.getItem('userId');
-    const userName = localStorage.getItem('userName');
-    const userJson = localStorage.getItem('user');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
     const userObj = userJson ? JSON.parse(userJson) : null;
 
-    if (!userId || !userName) {
-      alert('Please log in or create an account to proceed with checkout!');
-      navigate('/login');
-      return;
-    }
-
     // Pre-fill contact details from user profile if address is empty
-    if (!address.fullName || !address.phone) {
-      setAddress(prev => ({
-        ...prev,
-        fullName: prev.fullName || userObj?.name || userName || '',
-        phone: prev.phone || userObj?.phone || ''
-      }));
+    if (userObj) {
+      if (!address.fullName || !address.phone) {
+        setAddress(prev => ({
+          ...prev,
+          fullName: prev.fullName || userObj?.name || '',
+          phone: prev.phone || userObj?.phone || ''
+        }));
+      }
     }
 
-    if (savedAddresses.length > 0 && !selectedAddressId) {
+    if (token && savedAddresses.length > 0 && !selectedAddressId) {
       setShowAddressForm(false);
-    } else if (savedAddresses.length === 0) {
+    } else {
       setShowAddressForm(true);
     }
 
@@ -223,8 +218,8 @@ export function Cart() {
 
       const createdOrder = await api.placeOrder(orderData);
 
-      // If a new address was used, save it to the profile
-      if (showAddressForm) {
+      // If a new address was used, save it to the profile (only for logged in users)
+      if (showAddressForm && (localStorage.getItem('token') || sessionStorage.getItem('token'))) {
         try {
           await api.addAddress(address);
         } catch (addrErr) {
@@ -232,6 +227,8 @@ export function Cart() {
         }
       }
 
+      // Clear local guest cart
+      localStorage.removeItem('guestCart');
       setItems([]);
       setIsRazorpayOpen(false);
       navigate('/order-success', { state: { order: createdOrder } });

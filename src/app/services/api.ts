@@ -242,10 +242,7 @@ export const api = {
   },
 
   placeOrder: async (orderData: any) => {
-    let userId = getCurrentUserId();
-    if (!userId) {
-      userId = await api.setupMockUser();
-    }
+    const userId = getCurrentUserId();
     const response = await axios.post(`${API_BASE_URL}/orders`, {
       userId,
       ...orderData

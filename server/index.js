@@ -37,6 +37,7 @@ import { VerificationToken } from './models/VerificationToken.js';
 import { requireAuth } from './middleware/auth.js';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import axios from 'axios';
+import jwt from 'jsonwebtoken';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -658,17 +659,49 @@ app.get('/api/orders/user/:userId', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/orders', requireAuth, async (req, res) => {
+app.post('/api/orders', async (req, res) => {
   try {
     const { userId, products, totalAmount, discount, deliveryCharge, shippingAddress, payment } = req.body;
 
-    if (req.user.id.toString() !== userId) {
-      return res.status(403).json({ message: 'Forbidden' });
+    let finalUserId = userId;
+
+    // Check token if present in authorization headers
+    let authenticatedUser = null;
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token) {
+      try {
+        const secret = process.env.JWT_SECRET || 'richgirl_jwt_secret_fallback_key_2024';
+        const decoded = jwt.verify(token, secret);
+        authenticatedUser = await User.findById(decoded.id);
+      } catch (err) {
+        console.error('Invalid token in order placement:', err);
+      }
+    }
+
+    if (authenticatedUser) {
+      finalUserId = authenticatedUser._id;
+    } else {
+      // Find or create customer user by phone
+      if (!shippingAddress || !shippingAddress.phone || !shippingAddress.fullName) {
+        return res.status(400).json({ message: 'Shipping address phone and fullName are required' });
+      }
+      let guestUser = await User.findOne({ phone: shippingAddress.phone });
+      if (!guestUser) {
+        guestUser = new User({
+          name: shippingAddress.fullName,
+          phone: shippingAddress.phone,
+          role: 'customer',
+          isVerified: true
+        });
+        await guestUser.save();
+      }
+      finalUserId = guestUser._id;
     }
 
     const newOrder = new Order({
       orderId: 'RG-' + new Date().getFullYear() + '-' + Math.floor(10000 + Math.random() * 90000),
-      userId,
+      userId: finalUserId,
       products,
       totalAmount,
       discount,
@@ -709,8 +742,10 @@ app.post('/api/orders', requireAuth, async (req, res) => {
       }
     }
 
-    // Clear the user's cart
-    await Cart.findOneAndUpdate({ userId }, { items: [] });
+    // Clear the user's cart if authenticated
+    if (authenticatedUser) {
+      await Cart.findOneAndUpdate({ userId: finalUserId }, { items: [] });
+    }
 
     res.status(201).json(newOrder);
   } catch (error) {
@@ -1005,7 +1040,7 @@ app.post('/api/users/reset-password', async (req, res) => {
 });
 
 // --- Payments ---
-app.post('/api/payment/create-order', requireAuth, async (req, res) => {
+app.post('/api/payment/create-order', async (req, res) => {
   try {
     if (!razorpay) {
       return res.status(400).json({ message: 'Razorpay is not configured on the server.' });
@@ -1025,7 +1060,7 @@ app.post('/api/payment/create-order', requireAuth, async (req, res) => {
   }
 });
 
-app.post('/api/payment/verify', requireAuth, async (req, res) => {
+app.post('/api/payment/verify', async (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 

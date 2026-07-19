@@ -20,7 +20,7 @@ interface Product {
 }
 
 // Format 1 Card (Rounded Rectangle)
-function ProductCardFormat1({ product, index, badge, darkTheme = false }: { product: Product; index: number; badge?: { text: string; className: string }; darkTheme?: boolean }) {
+function ProductCardFormat1({ product, index, badge, darkTheme = false, isSliding = false }: { product: Product; index: number; badge?: { text: string; className: string }; darkTheme?: boolean; isSliding?: boolean }) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -40,11 +40,11 @@ function ProductCardFormat1({ product, index, badge, darkTheme = false }: { prod
       initial={{ opacity: 0, y: 30 }}
       animate={isVisible ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group flex flex-col cursor-pointer"
+      className={`group flex flex-col cursor-pointer ${isSliding ? 'w-[165px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0 snap-start' : 'w-full max-w-[165px] sm:max-w-[240px] md:max-w-[300px] lg:max-w-[340px] mx-auto'}`}
     >
       <Link to={`/product/${product.id}`} className="w-full flex flex-col">
         <div 
-          className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5] lg:max-h-[240px]"
+          className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5]"
           style={{ aspectRatio: '3/4', borderRadius: '16px' }}
         >
           {badge && (
@@ -85,6 +85,8 @@ function ProductCardFormat1({ product, index, badge, darkTheme = false }: { prod
 // Format 1 Section
 function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) {
   if (products.length === 0) return null;
+  const isSliding = products.length > 2;
+
   return (
     <section className="py-8 lg:py-14 bg-[#fdfcfb] border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
@@ -100,11 +102,25 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 lg:grid-cols-2 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10">
-          {products.map((product: any, index: number) => (
-            <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} />
-          ))}
-        </div>
+        {isSliding ? (
+          <div
+            className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0 snap-x snap-mandatory pb-4 lg:pb-6"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="flex gap-4 lg:gap-6 min-w-max">
+              {products.map((product: any, index: number) => (
+                <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} isSliding={true} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10 justify-center max-w-[720px] mx-auto">
+            {products.map((product: any, index: number) => (
+              <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} isSliding={false} />
+            ))}
+          </div>
+        )}
+
         <div className="mt-6 lg:mt-10 text-center lg:hidden">
           <Link to="/shop" className="text-[12px] font-bold tracking-widest text-[#2c4c3b] inline-flex items-center gap-1.5 border-b border-[#2c4c3b] pb-0.5">
              VIEW ALL <span>→</span>
@@ -117,6 +133,8 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
 
 function NewArrivalsSection({ products, badgeGetter }: any) {
   if (products.length === 0) return null;
+  const isSliding = products.length > 2;
+
   return (
     <section className="bg-[#293526] py-8 lg:py-14 border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
@@ -132,11 +150,25 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
           </Link>
         </div>
         
-        <div className="grid grid-cols-2 lg:grid-cols-2 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10">
-          {products.map((product: any, index: number) => (
-            <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} darkTheme={true} />
-          ))}
-        </div>
+        {isSliding ? (
+          <div
+            className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0 snap-x snap-mandatory pb-4 lg:pb-6"
+            style={{ WebkitOverflowScrolling: 'touch' }}
+          >
+            <div className="flex gap-4 lg:gap-6 min-w-max">
+              {products.map((product: any, index: number) => (
+                <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} darkTheme={true} isSliding={true} />
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-x-2 gap-y-4 lg:gap-x-6 lg:gap-y-10 justify-center max-w-[720px] mx-auto">
+            {products.map((product: any, index: number) => (
+              <ProductCardFormat1 key={product.id} product={product} index={index} badge={badgeGetter(product)} darkTheme={true} isSliding={false} />
+            ))}
+          </div>
+        )}
+
         <div className="mt-6 lg:mt-10 text-center lg:hidden">
           <Link to="/shop" className="text-[12px] font-bold tracking-widest text-[#f7f5f0] inline-flex items-center gap-1.5 border-b border-[#f7f5f0] pb-0.5">
              VIEW ALL <span>→</span>
@@ -173,26 +205,26 @@ export function ProductGrid() {
     );
   }
 
-  // 1. New Arrivals: newest by createdAt
+  // 1. New Arrivals: newest by createdAt (max 8-10 products)
   const newArrivals = [...products]
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
-    .slice(0, 4);
+    .slice(0, 10);
 
-  // 2. Best Sellers: highest ratings.count (fallback to arbitrary if missing)
+  // 2. Best Sellers: highest ratings.count (max 8-10 products)
   const bestSellers = [...products]
     .sort((a, b) => ((b.ratings?.count || 0) - (a.ratings?.count || 0)))
-    .slice(0, 4);
+    .slice(0, 10);
 
-  // 3. Premium Collection: highest price
+  // 3. Premium Collection: highest price (max 8-10 products)
   const premiumProducts = [...products]
     .sort((a, b) => b.price - a.price)
-    .slice(0, 4);
+    .slice(0, 10);
 
-  // 4. Deals of the Day: highest discount
+  // 4. Deals of the Day: highest discount (max 8-10 products)
   const dealProducts = [...products]
     .filter(p => (p.discount || 0) > 0)
     .sort((a, b) => (b.discount || 0) - (a.discount || 0))
-    .slice(0, 4);
+    .slice(0, 10);
 
   return (
     <>

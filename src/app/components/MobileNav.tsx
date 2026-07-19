@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { SearchOverlay } from './SearchOverlay';
 import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export function MobileNav() {
   const navigate = useNavigate();
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [cartCount, setCartCount] = useState(0);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchCartCount = async () => {
@@ -65,12 +67,14 @@ export function MobileNav() {
             )}
           </Link>
 
-          <Link to="/profile" className="flex flex-col items-center gap-1">
-            <User className="w-5 h-5" style={{ color: 'var(--brand-dark-text)' }} />
-            <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--brand-dark-text)' }}>
-              Profile
-            </span>
-          </Link>
+          {user && (
+            <Link to="/profile" className="flex flex-col items-center gap-1">
+              <User className="w-5 h-5" style={{ color: 'var(--brand-dark-text)' }} />
+              <span style={{ fontFamily: 'var(--font-body)', fontSize: '10px', color: 'var(--brand-dark-text)' }}>
+                Profile
+              </span>
+            </Link>
+          )}
         </div>
       </nav>
 
