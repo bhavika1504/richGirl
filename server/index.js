@@ -752,18 +752,19 @@ app.post('/api/orders', async (req, res) => {
     for (const item of products) {
       try {
         const product = await Product.findById(item.id || item.productId);
-        if (product) {
+        if (product && product.sizes) {
           // Find the specific size-color variant
           const sizeObj = product.sizes.find(s => s.size === item.size);
-          if (sizeObj) {
+          if (sizeObj && sizeObj.variants) {
             const variant = sizeObj.variants.find(v => v.color === item.color);
             if (variant) {
               variant.stock = Math.max(0, variant.stock - item.quantity);
 
-              // Recalculate totalStock
-              product.totalStock = product.sizes.reduce((acc, s) =>
-                acc + s.variants.reduce((vAcc, v) => vAcc + v.stock, 0), 0
-              );
+              // Recalculate totalStock safely
+              product.totalStock = product.sizes.reduce((acc, s) => {
+                const variantStock = s.variants ? s.variants.reduce((vAcc, v) => vAcc + (v.stock || 0), 0) : 0;
+                return acc + variantStock;
+              }, 0);
               product.inStock = product.totalStock > 0;
 
               await product.save();
@@ -786,7 +787,7 @@ app.post('/api/orders', async (req, res) => {
     res.status(201).json(newOrder);
   } catch (error) {
     console.error("Failed to place order:", error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Server error', error: error.message, details: error.stack });
   }
 });
 

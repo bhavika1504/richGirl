@@ -245,9 +245,10 @@ export function Cart() {
       setItems([]);
       setIsRazorpayOpen(false);
       navigate('/order-success', { state: { order: createdOrder } });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to place order:", error);
-      alert('Failed to place order. Please try again.');
+      const errMsg = error.response?.data?.error || error.response?.data?.message || error.message || 'Please try again.';
+      alert(`Failed to place order: ${errMsg}`);
     } finally {
       setPlacingOrder(false);
     }
