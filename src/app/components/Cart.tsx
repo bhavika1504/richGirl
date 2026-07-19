@@ -207,7 +207,7 @@ export function Cart() {
     try {
       const orderData = {
         products: items.map(item => ({
-          productId: item.id,
+          productId: item.id || item.productId,
           name: item.name,
           image: item.image,
           size: item.size,

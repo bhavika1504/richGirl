@@ -63,7 +63,7 @@ export function ProductInfo({
     setIsAdding(true);
     try {
       await api.addToCart({
-        productId: product.id,
+        productId: product.id || product._id,
         name: product.name,
         image: product.images?.[0] || '',
         size: selectedSize,
