@@ -787,6 +787,18 @@ app.post('/api/orders', async (req, res) => {
     res.status(201).json(newOrder);
   } catch (error) {
     console.error("Failed to place order:", error);
+    try {
+      if (mongoose.connection.readyState === 1) {
+        await mongoose.connection.db.collection('error_logs').insertOne({
+          error: error.message,
+          stack: error.stack,
+          body: req.body,
+          timestamp: new Date()
+        });
+      }
+    } catch (dbErr) {
+      console.error("Failed to log error to MongoDB:", dbErr);
+    }
     res.status(500).json({ message: 'Server error', error: error.message, details: error.stack });
   }
 });
