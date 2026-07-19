@@ -297,6 +297,27 @@ export function Cart() {
 
   return (
     <div className="min-h-screen bg-[#F8F9F8] pb-20 lg:pb-0">
+      {/* FULL SCREEN LOADING OVERLAY */}
+      {placingOrder && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-200">
+          <div className="bg-white/10 border border-white/20 p-8 rounded-3xl max-w-sm w-full flex flex-col items-center shadow-2xl">
+            <div className="relative mb-6">
+              <div className="w-16 h-16 rounded-full border-4 border-white/20 border-t-[var(--brand-cta-green)] animate-spin"></div>
+              <div className="absolute inset-0 flex items-center justify-center text-[var(--brand-cta-green)]">
+                <ShieldCheck className="w-6 h-6 animate-pulse" />
+              </div>
+            </div>
+            
+            <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: 'var(--font-headline)' }}>
+              Connecting Securely...
+            </h3>
+            <p className="text-gray-300 text-xs leading-relaxed" style={{ fontFamily: 'var(--font-body)' }}>
+              Please wait while we initialize your payment. Do not refresh or close this page.
+            </p>
+          </div>
+        </div>
+      )}
+
       <Navbar />
 
       <main className="max-w-[1440px] mx-auto px-4 lg:px-20 py-8 lg:py-12">
