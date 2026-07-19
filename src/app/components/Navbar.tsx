@@ -170,29 +170,30 @@ export function Navbar() {
               >
                 <LayoutGrid className="w-4 h-4 text-blue-600" /> All Collections
               </Link>
-              {user && (
-                <div className="border-t border-gray-100 pt-4 mt-2">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-body)' }}>
-                    Account
-                  </p>
-                  <Link
-                    to={user?.role === 'admin' ? '/admin' : user?.role === 'employee' ? '/employee' : '/profile'}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
-                    style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
-                  >
-                    <User className="w-4 h-4 text-gray-500" /> My Profile
-                  </Link>
-                  <Link
-                    to="/profile/orders"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
-                    style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
-                  >
-                    <Package className="w-4 h-4 text-gray-500" /> My Orders
-                  </Link>
-                </div>
-              )}
+              <div className="border-t border-gray-100 pt-4 mt-2">
+                {user && (
+                  <>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3" style={{ fontFamily: 'var(--font-body)' }}>
+                      Account
+                    </p>
+                    <Link
+                      to={user?.role === 'admin' ? '/admin' : user?.role === 'employee' ? '/employee' : '/profile'}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
+                      style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
+                    >
+                      <User className="w-4 h-4 text-gray-500" /> My Profile
+                    </Link>
+                    <Link
+                      to="/profile/orders"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3.5 rounded-2xl font-semibold text-sm transition-all hover:bg-[var(--brand-mist-green)]"
+                      style={{ fontFamily: 'var(--font-body)', color: 'var(--brand-dark-text)' }}
+                    >
+                      <Package className="w-4 h-4 text-gray-500" /> My Orders
+                    </Link>
+                  </>
+                )}
                 <Link
                   to="/cart"
                   onClick={() => setIsMobileMenuOpen(false)}
