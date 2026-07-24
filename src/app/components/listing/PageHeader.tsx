@@ -21,7 +21,6 @@ export function PageHeader({
   onSelectSizeGroup
 }: PageHeaderProps) {
   const navigate = useNavigate();
-  const isIndianOrWestern = category === 'indian' || category === 'western' || title.toLowerCase().includes('indian') || title.toLowerCase().includes('western');
 
   return (
     <div
@@ -84,8 +83,8 @@ export function PageHeader({
         </p>
       </div>
 
-      {/* 2-Column Size Direct Filter Bar for Indian & Western Wear */}
-      {isIndianOrWestern && onSelectSizeGroup && (
+      {/* 2-Column Size Direct Filter Bar for All Categories */}
+      {onSelectSizeGroup && (
         <div className="w-full max-w-md mx-auto mt-1 px-1">
           <div className="grid grid-cols-2 gap-2 bg-white/90 p-1.5 rounded-2xl border border-[var(--brand-border)] shadow-sm">
             <button
