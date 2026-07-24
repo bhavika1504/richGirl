@@ -138,13 +138,35 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
   return (
     <section className="bg-[#293526] py-8 lg:py-14 border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
-        <div className="flex flex-col items-center text-center mb-6 lg:mb-12 relative">
-          <h2 className="uppercase tracking-widest text-[#f7f5f0] mb-1.5 lg:mb-2 font-bold" style={{ fontFamily: 'var(--font-lobster)', fontSize: 'clamp(32px, 5.5vw, 48px)' }}>
-            New Arrivals
+        <div className="flex flex-col items-center text-center mb-8 lg:mb-14 relative">
+          {/* Top Label */}
+          <span 
+            className="text-emerald-200/90 text-xs sm:text-sm lg:text-base font-semibold tracking-wide mb-1"
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            Introducing
+          </span>
+
+          {/* Main Title - Image Styled Bold Graphic Display */}
+          <h2 
+            className="text-[#f7f5f0] uppercase tracking-wider font-extrabold leading-none my-1" 
+            style={{ 
+              fontFamily: 'var(--font-headline)', 
+              fontSize: 'clamp(36px, 7.5vw, 68px)',
+              letterSpacing: '-0.02em'
+            }}
+          >
+            NEW ARRIVALS
           </h2>
-          <p className="text-[#d0d8cc] italic" style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 1.8vw, 16px)' }}>
-            Be the first to own the latest trends.
+
+          {/* Bottom Subtitle */}
+          <p 
+            className="text-[#d0d8cc]/80 text-xs sm:text-sm font-medium mt-1 tracking-wider" 
+            style={{ fontFamily: 'var(--font-body)' }}
+          >
+            Typeface font
           </p>
+
           <Link to="/shop" className="text-[12px] lg:text-[13px] font-bold tracking-widest text-[#f7f5f0] hover:text-white transition-colors absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1.5">
             VIEW ALL <span>→</span>
           </Link>

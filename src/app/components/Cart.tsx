@@ -549,20 +549,18 @@ export function Cart() {
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-2">City *</label>
-                      {checkoutAvailableCities.length > 0 ? (
-                        <select
-                          required
-                          value={address.city}
-                          onChange={(e) => setAddress({ ...address, city: e.target.value })}
-                          className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium appearance-none cursor-pointer"
-                        >
-                          <option value="">Select City</option>
-                          {checkoutAvailableCities.map(c => <option key={c} value={c}>{c}</option>)}
-                        </select>
-                      ) : (
-                        <input type="text" disabled placeholder="Select a state first"
-                          className="w-full bg-gray-100 border border-gray-200 rounded-2xl py-3.5 px-4 text-sm text-gray-400 cursor-not-allowed" />
-                      )}
+                      <input
+                        type="text"
+                        required
+                        list="checkout-city-suggestions"
+                        value={address.city}
+                        onChange={(e) => setAddress({ ...address, city: e.target.value })}
+                        className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3.5 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                        placeholder="Enter your City / Town"
+                      />
+                      <datalist id="checkout-city-suggestions">
+                        {checkoutAvailableCities.map(c => <option key={c} value={c} />)}
+                      </datalist>
                     </div>
                   </div>
 

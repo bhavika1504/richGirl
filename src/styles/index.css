@@ -16,6 +16,7 @@
 
 body {
   font-family: var(--font-body);
+  font-weight: 600;
 }
 
 h1,
@@ -25,5 +26,9 @@ h4,
 h5,
 h6 {
   font-family: var(--font-headline);
-  font-weight: 700;
+  font-weight: 800;
+}
+
+p, span, a, label, input, button, select {
+  font-weight: 600;
 }

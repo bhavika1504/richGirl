@@ -154,19 +154,21 @@ export function ProfileAddresses() {
                                             {INDIA_STATES.map(s => <option key={s} value={s}>{s}</option>)}
                                         </select>
                                     </div>
-                                    {/* City Dropdown (filtered by state) */}
+                                    {/* City Input (Unrestricted) */}
                                     <div>
                                         <label className="block text-xs font-bold text-gray-600 mb-1.5">City *</label>
-                                        {availableCities.length > 0 ? (
-                                            <select required value={form.city} onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
-                                                className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm appearance-none cursor-pointer">
-                                                <option value="">Select City</option>
-                                                {availableCities.map(c => <option key={c} value={c}>{c}</option>)}
-                                            </select>
-                                        ) : (
-                                            <input type="text" placeholder="Select a state first" disabled
-                                                className="w-full bg-gray-100 border border-gray-200 rounded-xl py-3 px-4 text-sm text-gray-400 cursor-not-allowed" />
-                                        )}
+                                        <input
+                                            required
+                                            type="text"
+                                            list="profile-city-suggestions"
+                                            value={form.city}
+                                            onChange={e => setForm(p => ({ ...p, city: e.target.value }))}
+                                            placeholder="Enter your City / Town"
+                                            className="w-full bg-gray-50 border border-gray-200 rounded-xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
+                                        />
+                                        <datalist id="profile-city-suggestions">
+                                            {availableCities.map(c => <option key={c} value={c} />)}
+                                        </datalist>
                                     </div>
                                     {/* ZIP */}
                                     <div>

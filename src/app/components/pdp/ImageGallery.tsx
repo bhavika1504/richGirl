@@ -15,7 +15,7 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
     <div className="lg:sticky lg:top-24">
       {/* Mobile Carousel */}
       <div className="lg:hidden relative">
-        <div className="relative overflow-hidden" style={{ aspectRatio: '3/4' }}>
+        <div className="relative overflow-hidden shadow-sm border border-gray-100" style={{ aspectRatio: '3/4', borderRadius: '20px' }}>
           <motion.img
             key={selectedImage}
             initial={{ opacity: 0 }}

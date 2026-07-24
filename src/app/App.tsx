@@ -7,6 +7,7 @@ import { ProductDetail } from './components/ProductDetail';
 import { Cart } from './components/Cart';
 import { Profile } from './components/Profile';
 import { Login } from './components/Login';
+import { StaffLogin } from './components/StaffLogin';
 import { Register } from './components/Register';
 import { AdminDashboard } from './components/AdminDashboard';
 import { EmployeeDashboard } from './components/EmployeeDashboard';
@@ -64,6 +65,7 @@ export default function App() {
           } />
 
           <Route path="/login" element={<Login />} />
+          <Route path="/staff-login" element={<StaffLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

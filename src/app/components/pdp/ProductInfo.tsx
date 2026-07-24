@@ -53,6 +53,7 @@ export function ProductInfo({
   const navigate = useNavigate();
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isBuying, setIsBuying] = useState(false);
 
   const handleAddToCart = async () => {
     if (!selectedSize || !selectedColor) {
@@ -75,14 +76,39 @@ export function ProductInfo({
 
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 2000);
-
-      // We don't navigate anymore as per user request
-      // navigate('/cart');
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Failed to add to cart');
     } finally {
       setIsAdding(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (!selectedSize || !selectedColor) {
+      alert('Please select a size and color');
+      return;
+    }
+
+    setIsBuying(true);
+    try {
+      await api.addToCart({
+        productId: product.id || product._id,
+        name: product.name,
+        image: product.images?.[0] || '',
+        size: selectedSize,
+        color: selectedColor,
+        quantity: quantity,
+        price: product.price,
+        originalPrice: product.originalPrice
+      });
+
+      navigate('/cart');
+    } catch (error) {
+      console.error('Failed to process Buy Now:', error);
+      alert('Failed to process Buy Now');
+    } finally {
+      setIsBuying(false);
     }
   };
   return (
@@ -364,42 +390,56 @@ export function ProductInfo({
           </button>
         </div>
 
-        <div className="flex gap-3">
+        <div className="space-y-2.5 w-full">
+          {/* BUY NOW Button (Primary Direct Action) */}
           <motion.button
-            onClick={handleAddToCart}
-            disabled={isAdding || showSuccess}
-            className="flex-1 h-12 lg:h-[50px] rounded-full text-white flex items-center justify-center gap-2"
+            onClick={handleBuyNow}
+            disabled={isBuying}
+            className="w-full h-13 rounded-2xl text-white font-bold text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-lg shadow-black/10 transition-all cursor-pointer"
             style={{
-              backgroundColor: showSuccess ? '#3D9E32' : 'var(--brand-cta-green)',
+              backgroundColor: 'var(--brand-dark-text)',
               fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              letterSpacing: '0.1em',
-              fontWeight: '500',
-              cursor: (isAdding || showSuccess) ? 'wait' : 'pointer',
-              opacity: isAdding ? 0.7 : 1
+              opacity: isBuying ? 0.7 : 1
             }}
-            whileHover={!(isAdding || showSuccess) ? { backgroundColor: '#3D9E32', scale: 1.01 } : {}}
-            whileTap={!(isAdding || showSuccess) ? { scale: 0.96 } : {}}
+            whileHover={{ scale: 1.01, backgroundColor: '#0d1e0a' }}
+            whileTap={{ scale: 0.98 }}
           >
-            {isAdding ? 'ADDING...' : showSuccess ? (
-              <>
-                ADDED! <RefreshCw className="w-4 h-4 animate-spin-slow" />
-              </>
-            ) : 'ADD TO CART'}
+            {isBuying ? 'PROCESSING...' : '⚡ BUY NOW'}
           </motion.button>
-          <motion.button
-            className="flex-1 h-12 lg:h-[50px] rounded-full bg-white flex items-center justify-center gap-2"
-            style={{
-              border: '1.5px solid var(--brand-cta-green)',
-              color: '#3D9E32',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px'
-            }}
-            whileHover={{ backgroundColor: 'var(--brand-mist-green)' }}
-            whileTap={{ scale: 0.96 }}
-          >
-            WISHLIST <Heart className="w-4 h-4" />
-          </motion.button>
+
+          {/* ADD TO CART & WISHLIST Row */}
+          <div className="flex gap-2.5 w-full">
+            <motion.button
+              onClick={handleAddToCart}
+              disabled={isAdding || showSuccess}
+              className="flex-1 h-12 rounded-2xl text-white font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 shadow-sm transition-all cursor-pointer"
+              style={{
+                backgroundColor: showSuccess ? '#3D9E32' : 'var(--brand-cta-green)',
+                fontFamily: 'var(--font-body)',
+                opacity: isAdding ? 0.7 : 1
+              }}
+              whileHover={!(isAdding || showSuccess) ? { backgroundColor: '#3D9E32', scale: 1.01 } : {}}
+              whileTap={!(isAdding || showSuccess) ? { scale: 0.98 } : {}}
+            >
+              {isAdding ? 'ADDING...' : showSuccess ? (
+                <>
+                  ADDED! <RefreshCw className="w-4 h-4 animate-spin-slow" />
+                </>
+              ) : 'ADD TO CART'}
+            </motion.button>
+
+            <motion.button
+              className="px-5 h-12 rounded-2xl bg-white border-2 border-[var(--brand-cta-green)] text-[var(--brand-cta-green)] font-bold text-xs sm:text-sm tracking-wider uppercase flex items-center justify-center gap-2 transition-all cursor-pointer"
+              style={{
+                fontFamily: 'var(--font-body)'
+              }}
+              whileHover={{ backgroundColor: 'var(--brand-mist-green)', scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <Heart className="w-4 h-4" />
+              <span className="hidden sm:inline">WISHLIST</span>
+            </motion.button>
+          </div>
         </div>
       </div>
 

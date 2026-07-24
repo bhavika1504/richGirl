@@ -1,7 +1,26 @@
-import { Instagram, Facebook, Twitter } from 'lucide-react';
-import { Link } from 'react-router';
+import { Instagram, Facebook } from 'lucide-react';
+import { Link, useNavigate } from 'react-router';
+import { useRef } from 'react';
 
 export function Footer() {
+  const navigate = useNavigate();
+  const clickCountRef = useRef(0);
+  const timerRef = useRef<any>(null);
+
+  const handleSecretClick = () => {
+    clickCountRef.current += 1;
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    if (clickCountRef.current >= 3) {
+      clickCountRef.current = 0;
+      navigate('/staff-login');
+    } else {
+      timerRef.current = setTimeout(() => {
+        clickCountRef.current = 0;
+      }, 1500);
+    }
+  };
+
   return (
     <footer
       className="py-12 lg:py-16"
@@ -166,7 +185,8 @@ export function Footer() {
           style={{ borderColor: 'rgba(232, 245, 228, 0.2)' }}
         >
           <p
-            className="opacity-70"
+            onClick={handleSecretClick}
+            className="opacity-70 select-none cursor-default"
             style={{
               fontFamily: 'var(--font-body)',
               fontSize: '13px',
@@ -180,3 +200,4 @@ export function Footer() {
     </footer>
   );
 }
+

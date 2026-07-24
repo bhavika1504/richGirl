@@ -47,7 +47,24 @@ export function ProductListing() {
     });
   };
 
+  const [activeSizeGroup, setActiveSizeGroup] = useState<'regular' | 'plus' | null>(null);
+
+  const handleSelectSizeGroup = (group: 'regular' | 'plus') => {
+    if (activeSizeGroup === group) {
+      setActiveSizeGroup(null);
+      setActiveSizes([]);
+    } else {
+      setActiveSizeGroup(group);
+      if (group === 'regular') {
+        setActiveSizes(['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']);
+      } else {
+        setActiveSizes(['4XL', '5XL', '6XL', '7XL', '8XL']);
+      }
+    }
+  };
+
   const clearAllFilters = () => {
+    setActiveSizeGroup(null);
     setActiveSizes([]);
     setActiveColors([]);
     setActiveSubCategories([]);
@@ -72,6 +89,9 @@ export function ProductListing() {
         breadcrumb={['Home', 'Shop', displayTitle]}
         title={displayTitle}
         productCount={24}
+        category={category}
+        activeSizeGroup={activeSizeGroup}
+        onSelectSizeGroup={handleSelectSizeGroup}
       />
 
       {/* Mobile Filter/Sort Bar */}

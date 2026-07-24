@@ -47,18 +47,25 @@ export function StickyBottomBar({ price }: StickyBottomBarProps) {
             </p>
           </div>
 
-          <Link
-            to="/cart"
-            className="rounded-full px-7 py-3 text-white flex items-center justify-center"
-            style={{
-              backgroundColor: 'var(--brand-cta-green)',
-              fontFamily: 'var(--font-body)',
-              fontSize: '13px',
-              fontWeight: '500'
-            }}
-          >
-            ADD TO CART
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              to="/cart"
+              className="rounded-xl px-4 py-2.5 bg-[var(--brand-dark-text)] text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center shadow-sm"
+              style={{ fontFamily: 'var(--font-body)' }}
+            >
+              Buy Now
+            </Link>
+            <Link
+              to="/cart"
+              className="rounded-xl px-4 py-2.5 text-white text-xs font-bold uppercase tracking-wider flex items-center justify-center shadow-sm"
+              style={{
+                backgroundColor: 'var(--brand-cta-green)',
+                fontFamily: 'var(--font-body)'
+              }}
+            >
+              Add to Cart
+            </Link>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
