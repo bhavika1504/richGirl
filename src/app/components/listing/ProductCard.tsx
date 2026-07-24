@@ -54,32 +54,37 @@ export function ProductCard({ product, index }: ProductCardProps) {
         transition={{ duration: 0.4, delay: index * 0.05 }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className="relative group cursor-pointer bg-white"
+        className="relative group cursor-pointer bg-white flex flex-col"
         style={{
           borderRadius: '14px',
-          border: `0.5px solid ${isHovered ? 'var(--brand-cta-green)' : 'var(--brand-mist-green)'}`,
-          transition: 'border-color 0.2s',
-          height: '100%'
+          border: `1px solid ${isHovered ? 'var(--brand-cta-green)' : 'var(--brand-border)'}`,
+          transition: 'border-color 0.2s, box-shadow 0.2s',
+          boxShadow: isHovered ? '0 4px 20px rgba(0,0,0,0.07)' : '0 1px 4px rgba(0,0,0,0.04)',
+          overflow: 'hidden'
         }}
       >
-        {/* Image Area */}
-        <div className="relative overflow-hidden lg:max-h-[240px]" style={{ borderRadius: '14px 14px 0 0', aspectRatio: '3/4' }}>
+        {/* Image Area — takes up most of the card */}
+        <div
+          className="relative flex-shrink-0 overflow-hidden"
+          style={{ borderRadius: '13px 13px 0 0', aspectRatio: '3/4' }}
+        >
           <img
             src={product.images?.[0] || product.image}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-400 group-hover:scale-105"
             style={{ backgroundColor: 'var(--brand-alt-bg)' }}
           />
 
           {/* Badge */}
           {product.badge && (
             <div
-              className="absolute top-2 left-2 px-3 py-1 rounded-full"
+              className="absolute top-2 left-2 px-2.5 py-0.5 rounded-full"
               style={{
                 fontFamily: 'var(--font-body)',
-                fontSize: '11px',
+                fontSize: '10px',
+                fontWeight: '700',
                 backgroundColor: product.isNew ? 'var(--brand-cta-green)' : 'var(--brand-dark-text)',
-                color: product.isNew ? 'var(--brand-white)' : 'var(--brand-mist-green)'
+                color: 'white'
               }}
             >
               {product.badge}
@@ -87,33 +92,33 @@ export function ProductCard({ product, index }: ProductCardProps) {
           )}
 
           {/* Wishlist Icon */}
-          <motion.button
-            initial={{ opacity: 0 }}
-            animate={{ opacity: isHovered ? 1 : 0 }}
+          <button
+            className="absolute top-2 right-2 p-1.5 bg-white/80 backdrop-blur-sm rounded-full transition-opacity"
+            style={{ opacity: isHovered ? 1 : 0 }}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               setIsWishlisted(!isWishlisted);
             }}
-            className="absolute top-2 right-2 p-2 bg-white/80 backdrop-blur-sm rounded-full"
           >
             <Heart
-              className="w-4 h-4"
+              className="w-3.5 h-3.5"
               style={{
                 color: 'var(--brand-dark-text)',
                 fill: isWishlisted ? 'var(--brand-cta-green)' : 'none'
               }}
             />
-          </motion.button>
+          </button>
 
           {/* Out of Stock Overlay */}
           {!product.inStock && (
             <div className="absolute inset-0 bg-white/60 backdrop-blur-[1px] flex items-center justify-center">
               <div
-                className="px-4 py-1 rounded-full"
+                className="px-3 py-0.5 rounded-full"
                 style={{
                   backgroundColor: '#F0F0F0',
                   fontFamily: 'var(--font-body)',
-                  fontSize: '11px',
+                  fontSize: '10px',
                   color: '#888'
                 }}
               >
@@ -121,15 +126,32 @@ export function ProductCard({ product, index }: ProductCardProps) {
               </div>
             </div>
           )}
+
+          {/* Add to Cart bar — slides up over BOTTOM of image only */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: isHovered && product.inStock ? 0 : '100%' }}
+            transition={{ duration: 0.22, ease: 'easeOut' }}
+            className="absolute bottom-0 left-0 right-0 h-9 items-center justify-center text-white hidden lg:flex"
+            style={{
+              backgroundColor: 'var(--brand-cta-green)',
+              fontFamily: 'var(--font-body)',
+              fontSize: '12px',
+              fontWeight: '600',
+              letterSpacing: '0.08em'
+            }}
+          >
+            Add to Cart
+          </motion.div>
         </div>
 
-        {/* Card Body */}
-        <div className="p-2.5 lg:p-4">
+        {/* Card Body — compact info below image */}
+        <div className="px-2.5 py-2 lg:px-3 lg:py-2.5">
           <h3
-            className="mb-0.5 lg:mb-1 truncate"
+            className="truncate mb-0.5"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(13px, 2.2vw, 15px)',
+              fontSize: 'clamp(12px, 2vw, 14px)',
               fontWeight: '700',
               color: 'var(--brand-dark-text)'
             }}
@@ -137,11 +159,12 @@ export function ProductCard({ product, index }: ProductCardProps) {
             {product.name}
           </h3>
 
+          {/* Fabric — desktop only */}
           <p
-            className="mb-1.5 lg:mb-2 hidden lg:block"
+            className="mb-1 hidden lg:block truncate"
             style={{
               fontFamily: 'var(--font-body)',
-              fontSize: 'clamp(11px, 1.5vw, 12px)',
+              fontSize: '11px',
               color: 'var(--brand-secondary-text)'
             }}
           >
@@ -149,12 +172,12 @@ export function ProductCard({ product, index }: ProductCardProps) {
           </p>
 
           {/* Price */}
-          <div className="flex items-center gap-1.5 lg:gap-2 mb-1.5 lg:mb-2">
+          <div className="flex items-center gap-1.5">
             <span
               style={{
                 fontFamily: 'var(--font-price)',
-                fontSize: 'clamp(14px, 2.2vw, 16px)',
-                fontWeight: '500',
+                fontSize: 'clamp(13px, 2vw, 15px)',
+                fontWeight: '700',
                 color: 'var(--brand-dark-text)'
               }}
             >
@@ -165,55 +188,15 @@ export function ProductCard({ product, index }: ProductCardProps) {
                 className="line-through"
                 style={{
                   fontFamily: 'var(--font-price)',
-                  fontSize: 'clamp(11px, 1.5vw, 13px)',
-                  color: '#888'
+                  fontSize: 'clamp(10px, 1.5vw, 12px)',
+                  color: '#aaa'
                 }}
               >
                 ₹{product.originalPrice.toLocaleString()}
               </span>
             )}
           </div>
-
-          {/* Sizes */}
-          <div className="flex gap-1 flex-wrap">
-            {product.sizes && product.sizes.slice(0, 3).map((sizeObj, idx) => {
-              const sizeStr = typeof sizeObj === 'object' && sizeObj !== null ? (sizeObj.size || sizeObj.name) : sizeObj;
-              const sizeKey = typeof sizeObj === 'object' && sizeObj !== null ? (sizeObj._id || sizeObj.size || idx) : sizeObj;
-              return (
-                <span
-                  key={sizeKey}
-                  className="px-2 py-0.5 rounded border"
-                  style={{
-                    fontFamily: 'var(--font-body)',
-                    fontSize: 'clamp(10px, 1.5vw, 11px)',
-                    color: 'var(--brand-dark-text)',
-                    borderColor: 'var(--brand-border)'
-                  }}
-                >
-                  {sizeStr}
-                </span>
-              );
-            })}
-          </div>
         </div>
-
-        {/* Add to Cart Bar - Desktop Hover */}
-        <motion.div
-          initial={{ y: '100%' }}
-          animate={{ y: isHovered && product.inStock ? 0 : '100%' }}
-          transition={{ duration: 0.22, ease: 'easeOut' }}
-          className="absolute bottom-0 left-0 right-0 h-10 flex items-center justify-center text-white hidden lg:flex"
-          style={{
-            backgroundColor: 'var(--brand-cta-green)',
-            fontFamily: 'var(--font-body)',
-            fontSize: '13px',
-            fontWeight: '500',
-            letterSpacing: '0.08em',
-            borderRadius: '0 0 14px 14px'
-          }}
-        >
-          Add to Cart
-        </motion.div>
       </motion.div>
     </Link>
   );
