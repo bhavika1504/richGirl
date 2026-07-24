@@ -76,7 +76,21 @@ export function AdminDashboard() {
   const [isEditing, setIsEditing] = useState(false);
   const [editingProductId, setEditingProductId] = useState<string | null>(null);
   const [categories, setCategories] = useState<any[]>([]);
-  const [newProduct, setNewProduct] = useState({
+  const DEFAULT_SIZE_GUIDE = {
+    headers: ['Size', 'Chest', 'Waist', 'Hip', 'Length'],
+    rows: [
+      ['XS', '32"', '26"', '34"', '45"'],
+      ['S',  '34"', '28"', '36"', '46"'],
+      ['M',  '36"', '30"', '38"', '47"'],
+      ['L',  '38"', '32"', '40"', '48"'],
+      ['XL', '40"', '34"', '42"', '49"'],
+      ['2XL','42"', '36"', '44"', '50"'],
+      ['3XL','44"', '38"', '46"', '51"'],
+      ['4XL','46"', '40"', '48"', '52"'],
+    ]
+  };
+
+  const [newProduct, setNewProduct] = useState<any>({
     name: '',
     description: '',
     category: '',
@@ -91,7 +105,8 @@ export function AdminDashboard() {
         variants: [{ color: 'White', colorLabel: 'White', stock: 0 }]
       }
     ],
-    type: 'western'
+    type: 'western',
+    sizeGuide: DEFAULT_SIZE_GUIDE
   });
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -206,21 +221,34 @@ export function AdminDashboard() {
       headStyles: { fillColor: [16, 185, 129] }
     });
 
-    // Totals
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
+    // Totals — use right-edge x=190 for values so label and value never overlap
+    const finalY = (doc as any).lastAutoTable.finalY + 12;
+    const LX = 120; // label x
+    const VX = 190; // value x (right-aligned)
+    doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text(`Subtotal:`, 140, finalY);
-    doc.text(`INR ${(order.totalAmount - (order.deliveryCharge || 0) + (order.discount || 0)).toLocaleString()}`, 175, finalY, { align: 'right' });
+    doc.text('Subtotal:', LX, finalY);
+    doc.setFont("helvetica", "normal");
+    doc.text(`INR ${(order.totalAmount - (order.deliveryCharge || 0) + (order.discount || 0)).toLocaleString()}`, VX, finalY, { align: 'right' });
 
-    doc.text(`Delivery Charge:`, 140, finalY + 7);
-    doc.text(`INR ${(order.deliveryCharge || 0).toLocaleString()}`, 175, finalY + 7, { align: 'right' });
+    doc.setFont("helvetica", "bold");
+    doc.text('Delivery Charge:', LX, finalY + 7);
+    doc.setFont("helvetica", "normal");
+    doc.text(`INR ${(order.deliveryCharge || 0).toLocaleString()}`, VX, finalY + 7, { align: 'right' });
 
-    doc.text(`Discount:`, 140, finalY + 14);
-    doc.text(`- INR ${(order.discount || 0).toLocaleString()}`, 175, finalY + 14, { align: 'right' });
+    doc.setFont("helvetica", "bold");
+    doc.text('Discount:', LX, finalY + 14);
+    doc.setFont("helvetica", "normal");
+    doc.text(`- INR ${(order.discount || 0).toLocaleString()}`, VX, finalY + 14, { align: 'right' });
 
-    doc.setFontSize(14);
-    doc.text(`Total Paid:`, 140, finalY + 25);
-    doc.text(`INR ${(order.totalAmount || 0).toLocaleString()}`, 175, finalY + 25, { align: 'right' });
+    // Divider line before total
+    doc.setDrawColor(200, 200, 200);
+    doc.line(LX, finalY + 18, 190, finalY + 18);
+
+    doc.setFontSize(13);
+    doc.setFont("helvetica", "bold");
+    doc.text('Total Paid:', LX, finalY + 26);
+    doc.text(`INR ${(order.totalAmount || 0).toLocaleString()}`, VX, finalY + 26, { align: 'right' });
 
     // Footer
     doc.setFontSize(8);
@@ -354,7 +382,8 @@ export function AdminDashboard() {
           stock: v.stock
         }))
       })),
-      type: product.type || 'western'
+      type: product.type || 'western',
+      sizeGuide: product.sizeGuide || DEFAULT_SIZE_GUIDE
     });
     // Pre-fill per-colour image previews from saved data
     const existingColorImages: Record<string, { files: File[], previews: string[] }> = {};
@@ -429,9 +458,9 @@ export function AdminDashboard() {
         fabric: newProduct.fabric,
         length: newProduct.length,
         occasion: newProduct.occasion,
-        sizes: newProduct.sizes.map((s, szIdx) => ({
+        sizes: newProduct.sizes.map((s: any, szIdx: number) => ({
           size: s.size,
-          variants: s.variants.map((v, vIdx) => ({
+          variants: s.variants.map((v: any, vIdx: number) => ({
             color: v.color,
             colorLabel: v.colorLabel,
             stock: Number(v.stock),
@@ -440,7 +469,8 @@ export function AdminDashboard() {
         })),
         images: finalImageUrls,
         image: finalImageUrls[0] || '',
-        type: newProduct.type
+        type: newProduct.type,
+        sizeGuide: newProduct.sizeGuide || DEFAULT_SIZE_GUIDE
       };
 
       if (isEditing && editingProductId) {
@@ -475,7 +505,8 @@ export function AdminDashboard() {
       sizes: [
         { size: 'S', variants: [{ color: 'White', colorLabel: 'White', stock: 0 }] }
       ],
-      type: 'western'
+      type: 'western',
+      sizeGuide: DEFAULT_SIZE_GUIDE
     });
     setImageFiles([]);
     setImagePreviews([]);
@@ -1545,12 +1576,15 @@ export function AdminDashboard() {
                             <div>
                               <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">
                                 Images for {v.colorLabel || v.color || 'this colour'}
-                                <span className="text-gray-400 font-normal ml-1">(min 3, max 5)</span>
+                                <span className="text-gray-400 font-normal ml-1">(1–5 images · 1st = front/colour view)</span>
                               </p>
                               <div className="flex gap-2 flex-wrap">
                                 {cImgs.previews.map((src, imgIdx) => (
-                                  <div key={imgIdx} className="relative w-14 h-18 rounded-xl overflow-hidden shadow-sm group border border-gray-100" style={{ height: '72px', width: '56px' }}>
+                                  <div key={imgIdx} className="relative rounded-xl overflow-hidden shadow-sm group border border-gray-100" style={{ height: '72px', width: '56px' }}>
                                     <img src={src} alt="" className="w-full h-full object-cover" />
+                                    {imgIdx === 0 && (
+                                      <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[7px] text-center font-bold py-0.5">FRONT</div>
+                                    )}
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -1568,7 +1602,7 @@ export function AdminDashboard() {
                                   </div>
                                 ))}
                                 {cImgs.previews.length < 5 && (
-                                  <label className="relative w-14 border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer" style={{ height: '72px', width: '56px' }}>
+                                  <label className="relative border-2 border-dashed border-gray-200 rounded-xl flex flex-col items-center justify-center bg-gray-50 hover:bg-gray-100 transition-all cursor-pointer" style={{ height: '72px', width: '56px' }}>
                                     <input
                                       type="file"
                                       multiple
@@ -1596,11 +1630,6 @@ export function AdminDashboard() {
                                   </label>
                                 )}
                               </div>
-                              {cImgs.previews.length < 3 && (
-                                <p className="text-[9px] text-amber-500 font-medium mt-1">
-                                  ⚠ Add at least {3 - cImgs.previews.length} more image{3 - cImgs.previews.length > 1 ? 's' : ''}
-                                </p>
-                              )}
                             </div>
                           </div>
                         );
@@ -1663,6 +1692,83 @@ export function AdminDashboard() {
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium"
                   placeholder="e.g. Casual, Festive, Wedding"
                 />
+              </div>
+
+              {/* Size Guide Editor */}
+              <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="block text-sm font-bold text-gray-700">Size Guide</label>
+                  <span className="text-[10px] text-gray-400 font-medium">Click any cell to edit</span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs" style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                    <thead>
+                      <tr className="bg-[var(--brand-mist-green)]">
+                        {(newProduct.sizeGuide?.headers || DEFAULT_SIZE_GUIDE.headers).map((h: string, hi: number) => (
+                          <th key={hi} className="px-2 py-2 text-left">
+                            <input
+                              type="text"
+                              value={h}
+                              onChange={(e) => {
+                                const sg = { ...(newProduct.sizeGuide || DEFAULT_SIZE_GUIDE) };
+                                sg.headers = [...sg.headers];
+                                sg.headers[hi] = e.target.value;
+                                setNewProduct({ ...newProduct, sizeGuide: sg });
+                              }}
+                              className="bg-transparent font-bold text-gray-700 w-full outline-none min-w-[50px]"
+                            />
+                          </th>
+                        ))}
+                        <th className="px-2 py-2 w-6"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(newProduct.sizeGuide?.rows || DEFAULT_SIZE_GUIDE.rows).map((row: string[], ri: number) => (
+                        <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                          {row.map((cell: string, ci: number) => (
+                            <td key={ci} className="px-2 py-1.5">
+                              <input
+                                type="text"
+                                value={cell}
+                                onChange={(e) => {
+                                  const sg = { ...(newProduct.sizeGuide || DEFAULT_SIZE_GUIDE) };
+                                  sg.rows = sg.rows.map((r: string[], idx: number) => idx === ri ? [...r.map((c: string, ci2: number) => ci2 === ci ? e.target.value : c)] : r);
+                                  setNewProduct({ ...newProduct, sizeGuide: sg });
+                                }}
+                                className="bg-transparent text-gray-700 w-full outline-none min-w-[40px]"
+                              />
+                            </td>
+                          ))}
+                          <td className="px-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const sg = { ...(newProduct.sizeGuide || DEFAULT_SIZE_GUIDE) };
+                                sg.rows = sg.rows.filter((_: any, idx: number) => idx !== ri);
+                                setNewProduct({ ...newProduct, sizeGuide: sg });
+                              }}
+                              className="text-gray-300 hover:text-red-400 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sg = { ...(newProduct.sizeGuide || DEFAULT_SIZE_GUIDE) };
+                    const emptyRow = new Array(sg.headers.length).fill('');
+                    sg.rows = [...sg.rows, emptyRow];
+                    setNewProduct({ ...newProduct, sizeGuide: sg });
+                  }}
+                  className="mt-3 text-xs font-bold text-[var(--brand-cta-green)] hover:underline flex items-center gap-1"
+                >
+                  <Plus className="w-3 h-3" /> Add Row
+                </button>
               </div>
 
               <div>

@@ -1,15 +1,36 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ZoomIn, Heart } from 'lucide-react';
 
 interface ImageGalleryProps {
   images: string[];
   badge?: string;
+  selectedColor?: string;
+  colorImageMap?: Record<string, string>; // colorLabel -> front image URL
 }
 
-export function ImageGallery({ images, badge }: ImageGalleryProps) {
+export function ImageGallery({ images, badge, selectedColor, colorImageMap }: ImageGalleryProps) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+
+  // Compose display images:
+  // [0] = colour-specific front image (if available), otherwise images[0]
+  // [1+] = global side/back images from images[1+]
+  const composedImages = (() => {
+    const sideBackImages = images.slice(1); // indices 1+ are side/back
+    const frontImage =
+      selectedColor && colorImageMap && colorImageMap[selectedColor]
+        ? colorImageMap[selectedColor]
+        : images[0];
+    return [frontImage, ...sideBackImages].filter(Boolean);
+  })();
+
+  // When colour changes, always show the front image (index 0)
+  useEffect(() => {
+    setSelectedImage(0);
+  }, [selectedColor]);
+
+  const displayImages = composedImages.length > 0 ? composedImages : images;
 
   return (
     <div className="lg:sticky lg:top-24">
@@ -17,11 +38,11 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
       <div className="lg:hidden relative">
         <div className="relative overflow-hidden shadow-sm border border-gray-100" style={{ aspectRatio: '3/4', borderRadius: '20px' }}>
           <motion.img
-            key={selectedImage}
+            key={`${selectedColor}-${selectedImage}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            src={images[selectedImage]}
+            transition={{ duration: 0.25 }}
+            src={displayImages[selectedImage]}
             alt="Product"
             className="w-full h-full object-cover"
             style={{ backgroundColor: 'var(--brand-alt-bg)' }}
@@ -58,7 +79,7 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
 
           {/* Dot Indicators */}
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-            {images.map((_, index) => (
+            {displayImages.map((_, index) => (
               <button
                 key={index}
                 onClick={() => setSelectedImage(index)}
@@ -80,11 +101,11 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
         {/* Primary Image */}
         <div className="relative group">
           <motion.img
-            key={selectedImage}
+            key={`${selectedColor}-${selectedImage}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            src={images[selectedImage]}
+            transition={{ duration: 0.25 }}
+            src={displayImages[selectedImage]}
             alt="Product"
             className="w-full object-cover transition-transform duration-300 group-hover:scale-103"
             style={{
@@ -123,9 +144,9 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
 
         {/* Thumbnail Strip */}
         <div className="flex gap-2.5 mt-3">
-          {images.map((image, index) => (
+          {displayImages.map((image, index) => (
             <button
-              key={index}
+              key={`${selectedColor}-${index}`}
               onClick={() => setSelectedImage(index)}
               className="overflow-hidden transition-all"
               style={{
@@ -138,7 +159,7 @@ export function ImageGallery({ images, badge }: ImageGalleryProps) {
             >
               <img
                 src={image}
-                alt={`Thumbnail ${index + 1}`}
+                alt={index === 0 ? 'Front view' : `View ${index + 1}`}
                 className="w-full h-full object-cover hover:opacity-100 transition-opacity"
               />
             </button>
