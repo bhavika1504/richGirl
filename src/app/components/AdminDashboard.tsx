@@ -51,6 +51,7 @@ const STANDARD_COLORS = [
 export function AdminDashboard() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const isEmployee = user?.role === 'employee';
 
   const STATUS_COLORS: Record<string, string> = {
     Processing: 'bg-yellow-50 text-yellow-600',
