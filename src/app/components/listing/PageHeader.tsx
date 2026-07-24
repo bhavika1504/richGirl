@@ -99,7 +99,7 @@ export function PageHeader({
               style={{ fontFamily: 'var(--font-body)' }}
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
-              Regular Size (XS-3XL)
+              Regular Size (XS-2XL)
             </button>
 
             <button
@@ -113,7 +113,7 @@ export function PageHeader({
               style={{ fontFamily: 'var(--font-body)' }}
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-              Plus Size (4XL+)
+              Plus Size (3XL+)
             </button>
           </div>
         </div>

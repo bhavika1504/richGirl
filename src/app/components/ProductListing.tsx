@@ -56,9 +56,9 @@ export function ProductListing() {
     } else {
       setActiveSizeGroup(group);
       if (group === 'regular') {
-        setActiveSizes(['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL']);
+        setActiveSizes(['XS', 'S', 'M', 'L', 'XL', '2XL']);
       } else {
-        setActiveSizes(['4XL', '5XL', '6XL', '7XL', '8XL']);
+        setActiveSizes(['3XL', '4XL', '5XL', '6XL', '7XL', '8XL']);
       }
     }
   };
