@@ -43,7 +43,7 @@ function ProductCardFormat1({ product, index, badge, darkTheme = false, isSlidin
       className={`group flex flex-col cursor-pointer ${isSliding ? 'w-[165px] sm:w-[220px] md:w-[260px] lg:w-[280px] flex-shrink-0 snap-start' : 'w-full max-w-[165px] sm:max-w-[240px] md:max-w-[300px] lg:max-w-[340px] mx-auto'}`}
     >
       <Link to={`/product/${product.id}`} className="w-full flex flex-col">
-        <div 
+        <div
           className="relative overflow-hidden w-full mb-3 lg:mb-4 shadow-sm group-hover:shadow-lg transition-all duration-300 bg-[#f5f5f5]"
           style={{ aspectRatio: '3/4', borderRadius: '16px' }}
         >
@@ -59,14 +59,14 @@ function ProductCardFormat1({ product, index, badge, darkTheme = false, isSlidin
           />
           <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
         </div>
-        
+
         <h3
           className="mb-1 lg:mb-1.5 w-full truncate font-bold"
           style={{ fontFamily: 'var(--font-body)', fontSize: 'clamp(14px, 2.2vw, 16px)', color: darkTheme ? '#f7f5f0' : '#2c4c3b' }}
         >
           {product.name}
         </h3>
-        
+
         <div className="flex items-center gap-2.5">
           <span style={{ fontFamily: 'var(--font-price)', fontSize: 'clamp(15px, 2.2vw, 17px)', color: darkTheme ? '#a4b49d' : '#2c4c3b', fontWeight: '800' }}>
             ₹{netPrice.toLocaleString()}
@@ -101,7 +101,7 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
             VIEW ALL <span>→</span>
           </Link>
         </div>
-        
+
         {isSliding ? (
           <div
             className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0 snap-x snap-mandatory pb-4 lg:pb-6"
@@ -123,7 +123,7 @@ function ProductSectionFormat1({ title, subtitle, products, badgeGetter }: any) 
 
         <div className="mt-6 lg:mt-10 text-center lg:hidden">
           <Link to="/shop" className="text-[12px] font-bold tracking-widest text-[#2c4c3b] inline-flex items-center gap-1.5 border-b border-[#2c4c3b] pb-0.5">
-             VIEW ALL <span>→</span>
+            VIEW ALL <span>→</span>
           </Link>
         </div>
       </div>
@@ -139,19 +139,13 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
     <section className="bg-[#293526] py-8 lg:py-14 border-b border-gray-100">
       <div className="max-w-[1440px] mx-auto px-4 lg:px-12">
         <div className="flex flex-col items-center text-center mb-8 lg:mb-14 relative">
-          {/* Top Label */}
-          <span 
-            className="text-emerald-200/90 text-xs sm:text-sm lg:text-base font-semibold tracking-wide mb-1"
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            Introducing
-          </span>
+
 
           {/* Main Title - Image Styled Bold Graphic Display */}
-          <h2 
-            className="text-[#f7f5f0] uppercase tracking-wider font-extrabold leading-none my-1" 
-            style={{ 
-              fontFamily: 'var(--font-headline)', 
+          <h2
+            className="text-[#f7f5f0] uppercase tracking-wider font-extrabold leading-none my-1"
+            style={{
+              fontFamily: 'var(--font-headline)',
               fontSize: 'clamp(36px, 7.5vw, 68px)',
               letterSpacing: '-0.02em'
             }}
@@ -159,19 +153,13 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
             NEW ARRIVALS
           </h2>
 
-          {/* Bottom Subtitle */}
-          <p 
-            className="text-[#d0d8cc]/80 text-xs sm:text-sm font-medium mt-1 tracking-wider" 
-            style={{ fontFamily: 'var(--font-body)' }}
-          >
-            Typeface font
-          </p>
+
 
           <Link to="/shop" className="text-[12px] lg:text-[13px] font-bold tracking-widest text-[#f7f5f0] hover:text-white transition-colors absolute right-0 top-1/2 -translate-y-1/2 hidden lg:flex items-center gap-1.5">
             VIEW ALL <span>→</span>
           </Link>
         </div>
-        
+
         {isSliding ? (
           <div
             className="overflow-x-auto scrollbar-hide -mx-4 lg:-mx-0 px-4 lg:px-0 snap-x snap-mandatory pb-4 lg:pb-6"
@@ -193,7 +181,7 @@ function NewArrivalsSection({ products, badgeGetter }: any) {
 
         <div className="mt-6 lg:mt-10 text-center lg:hidden">
           <Link to="/shop" className="text-[12px] font-bold tracking-widest text-[#f7f5f0] inline-flex items-center gap-1.5 border-b border-[#f7f5f0] pb-0.5">
-             VIEW ALL <span>→</span>
+            VIEW ALL <span>→</span>
           </Link>
         </div>
       </div>
@@ -250,7 +238,7 @@ export function ProductGrid() {
 
   return (
     <>
-      <NewArrivalsSection 
+      <NewArrivalsSection
         products={newArrivals}
         badgeGetter={() => ({ text: 'NEW', className: 'bg-[#a4b49d] text-white' })}
       />
@@ -273,9 +261,9 @@ export function ProductGrid() {
         title="Deals of the Day"
         subtitle="Incredible styles at unbeatable prices."
         products={dealProducts}
-        badgeGetter={(product: Product) => ({ 
-          text: `${product.discount}% OFF`, 
-          className: 'bg-green-50 text-green-600 border border-green-100' 
+        badgeGetter={(product: Product) => ({
+          text: `${product.discount}% OFF`,
+          className: 'bg-green-50 text-green-600 border border-green-100'
         })}
       />
     </>
