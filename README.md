@@ -1,11 +1,27 @@
+# RichGirl E-Commerce Platform
 
-  # Homepage Design for Ecommerce
+Luxury fashion e-commerce platform built with React, Vite, Tailwind CSS, Express, and MongoDB.
 
-  This is a code bundle for Homepage Design for Ecommerce. The original project is available at https://www.figma.com/design/xZLQTRFzjUAt8JRjiWEJKF/Homepage-Design-for-Ecommerce.
+## Features
+- **Product Catalog**: Dynamic catalog with Indian & Western ethnic and modern wear.
+- **Colour & Size Variants**: Integrated color/size stock management with color-aware image galleries.
+- **Design ID Tracking**: Automatic internal Design ID auto-generation (`[Brand][Date]/[Piece]`) for employee cataloging.
+- **Employee & Admin Dashboard**: Product listing, order tracking, Shiprocket integration, and invoice generation.
+- **Responsive Layout**: Mobile-optimized shopping experience.
 
-  ## Running the code
+## Running Locally
 
-  Run `npm i` to install the dependencies.
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-  Run `npm run dev` to start the development server.
-  
+2. Start local development server:
+   ```bash
+   npm run dev
+   ```
+
+3. Backend API (Server):
+   ```bash
+   node server/index.js
+   ```
