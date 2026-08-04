@@ -131,7 +131,7 @@ let mongoConnected = false;
 const connectDB = async () => {
   if (mongoConnected && mongoose.connection.readyState === 1) return;
   try {
-    const uri = process.env.MONGO_URI
+    const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
     await mongoose.connect(uri, {
       serverSelectionTimeoutMS: 10000,
       socketTimeoutMS: 45000,
@@ -245,7 +245,8 @@ async function seedInitialData() {
         
         { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
         { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
-        { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/western-cordset.jpg' }
+        { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/western-cordset.jpg' },
+        { name: 'Dresses', type: 'western', slug: 'dresses-western', image: '/assets/dresses.jpg' }
       ];
 
       for (const cat of categoriesToSeed) {
@@ -282,13 +283,17 @@ app.get('/api/products', async (req, res) => {
     let query = {};
 
     if (category) {
-      // If category is a slug, we might need to find the category first
+      // If category is a slug, find category document first
       const categoryDoc = await Category.findOne({ slug: category });
+      const searchPattern = category.replace(/[-]/g, '[-\\s]?');
       if (categoryDoc) {
-        query.category = categoryDoc._id;
+        query.$or = [
+          { category: categoryDoc._id },
+          { categoryName: { $regex: new RegExp(categoryDoc.name.replace(/[-]/g, '[-\\s]?'), 'i') } },
+          { categoryName: { $regex: new RegExp(searchPattern, 'i') } }
+        ];
       } else {
-        // Fallback to categoryName
-        query.categoryName = { $regex: new RegExp(category, 'i') };
+        query.categoryName = { $regex: new RegExp(searchPattern, 'i') };
       }
     }
 
@@ -1466,11 +1471,29 @@ app.get('/api/config', (req, res) => {
   });
 });
 
+// --- Cloudinary Upload Signature Endpoint ---
+app.get('/api/upload-signature', (req, res) => {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME || 'dx9jbf2ct';
+  const apiKey = process.env.CLOUDINARY_API_KEY || '521726244832984';
+  const apiSecret = process.env.CLOUDINARY_API_SECRET || 'DbhGsP0WU8eiQlcPtrNMqkp8KMg';
+  
+  const timestamp = Math.floor(Date.now() / 1000);
+  const strToSign = `timestamp=${timestamp}${apiSecret}`;
+  const signature = crypto.createHash('sha1').update(strToSign).digest('hex');
+
+  res.json({
+    cloudName,
+    apiKey,
+    timestamp,
+    signature
+  });
+});
+
 // --- Product Creation (Admin & Employee) ---
 app.post('/api/products', requireAuth, async (req, res) => {
   if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
-    const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
+    const { name, description, brandName, pieceNumber, designId, category, price, discount, fabric, colors, sizes, image, images, type, sizeGuide } = req.body;
 
     // Find or create category
     let categoryDoc = await Category.findOne({ name: { $regex: new RegExp(`^${category}$`, 'i') } });
@@ -1486,7 +1509,6 @@ app.post('/api/products', requireAuth, async (req, res) => {
     }
 
     const formattedSizes = sizes.map(s => {
-      // s is { size: 'S', variants: [{ color: 'Pink', stock: 10 }, ...] }
       return {
         size: s.size,
         variants: s.variants.map(v => ({
@@ -1505,10 +1527,6 @@ app.post('/api/products', requireAuth, async (req, res) => {
 
     const inStock = totalStock > 0;
 
-    // Selling price = Original - Discount
-    // Wait, the user said: "THE PRICE SHOULD BE WRITTEN BY USER, THE DISCOUNT PERCENT FIELD SHOULD BE SELECT ONE OPTIONS... BASED ON THISTHE DISCOUNTED RATE SHOULD BE SHOWN ON THE NET PRICE."
-    // So Price = MRP, Discount% = percentage.
-    // Price from frontend will be MRP.
     const mrp = Number(price);
     const discountPercent = Number(discount) || 0;
     const sellingPrice = Math.round(mrp * (1 - discountPercent / 100));
@@ -1517,6 +1535,9 @@ app.post('/api/products', requireAuth, async (req, res) => {
     const newProduct = new Product({
       name,
       description,
+      brandName: brandName || '',
+      pieceNumber: pieceNumber || '',
+      designId: designId || '',
       category: categoryDoc._id,
       categoryName: categoryDoc.name,
       type: type || 'western',
@@ -1525,11 +1546,12 @@ app.post('/api/products', requireAuth, async (req, res) => {
       discountPrice: discountAmount,
       discount: discountPercent,
       fabric: fabric || 'Cotton',
-      images: [image],
+      images: (images && images.length > 0) ? images : (image ? [image] : []),
       colors: colors || [],
       sizes: formattedSizes,
       inStock,
       totalStock,
+      sizeGuide: sizeGuide || undefined,
       isActive: true
     });
 
@@ -1545,7 +1567,7 @@ app.post('/api/products', requireAuth, async (req, res) => {
 app.put('/api/products/:id', requireAuth, async (req, res) => {
   if (req.user.role !== 'admin' && req.user.role !== 'employee') return res.status(403).json({ message: 'Forbidden' });
   try {
-    const { name, description, category, price, discount, fabric, colors, sizes, image, type } = req.body;
+    const { name, description, brandName, pieceNumber, designId, category, price, discount, fabric, colors, sizes, image, images, type, sizeGuide } = req.body;
     const product = await Product.findById(req.params.id);
     if (!product) return res.status(404).json({ message: 'Product not found' });
 
@@ -1574,6 +1596,9 @@ app.put('/api/products/:id', requireAuth, async (req, res) => {
 
     product.name = name;
     product.description = description;
+    if (brandName !== undefined) product.brandName = brandName;
+    if (pieceNumber !== undefined) product.pieceNumber = pieceNumber;
+    if (designId !== undefined) product.designId = designId;
     product.category = categoryDoc._id;
     product.categoryName = categoryDoc.name;
     product.price = sellingPrice;
@@ -1582,10 +1607,11 @@ app.put('/api/products/:id', requireAuth, async (req, res) => {
     product.discountPrice = mrp - sellingPrice;
     product.fabric = fabric;
     product.sizes = formattedSizes;
-    if (image) product.images = [image];
+    if (images && images.length > 0) { product.images = images; } else if (image) { product.images = [image]; }
     product.type = type;
     product.totalStock = totalStock;
     product.inStock = inStock;
+    if (sizeGuide) product.sizeGuide = sizeGuide;
 
     await product.save();
     res.json(product);

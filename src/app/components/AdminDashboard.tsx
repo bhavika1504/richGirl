@@ -93,6 +93,9 @@ export function AdminDashboard() {
   const [newProduct, setNewProduct] = useState<any>({
     name: '',
     description: '',
+    brandName: '',
+    pieceNumber: '',
+    designId: '',
     category: '',
     price: '', // This will be MRP (originalPrice)
     discount: '0', // Percentage
@@ -316,15 +319,7 @@ export function AdminDashboard() {
 
       // If the first image is a local blob (new file), upload it first
       if (currentImageUrl.startsWith('blob:') && imageFiles.length > 0) {
-        const config = await api.getConfig();
-        const formData = new FormData();
-        formData.append('file', imageFiles[0]);
-        formData.append('upload_preset', config.cloudinaryUploadPreset);
-        const res = await axios.post(
-          `https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`,
-          formData
-        );
-        currentImageUrl = res.data.secure_url;
+        currentImageUrl = await api.uploadImage(imageFiles[0]);
       }
 
       const res = await api.generateDescription(currentImageUrl);
@@ -368,6 +363,9 @@ export function AdminDashboard() {
     setNewProduct({
       name: product.name,
       description: product.description || '',
+      brandName: product.brandName || '',
+      pieceNumber: product.pieceNumber || '',
+      designId: product.designId || '',
       category: product.categoryName || product.category,
       price: (product.originalPrice || product.price).toString(),
       discount: (product.discount || 0).toString(),
@@ -415,19 +413,12 @@ export function AdminDashboard() {
     e.preventDefault();
     setSubmittingProduct(true);
     try {
-      const config = await api.getConfig();
-
       // Upload global images
       const finalImageUrls = [...imagePreviews.filter(p => !p.startsWith('blob:'))];
       if (imageFiles.length > 0) {
-        const uploadPromises = imageFiles.map(file => {
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('upload_preset', config.cloudinaryUploadPreset);
-          return axios.post(`https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`, formData);
-        });
+        const uploadPromises = imageFiles.map(file => api.uploadImage(file));
         const results = await Promise.all(uploadPromises);
-        results.forEach(res => finalImageUrls.push(res.data.secure_url));
+        finalImageUrls.push(...results);
       }
 
       // Upload per-colour images
@@ -437,14 +428,9 @@ export function AdminDashboard() {
         const existingUrls = entry.previews.filter(p => !p.startsWith('blob:'));
         const newUrls: string[] = [];
         if (entry.files.length > 0) {
-          const uploads = entry.files.map(file => {
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('upload_preset', config.cloudinaryUploadPreset);
-            return axios.post(`https://api.cloudinary.com/v1_1/${config.cloudinaryCloudName}/image/upload`, fd);
-          });
+          const uploads = entry.files.map(file => api.uploadImage(file));
           const results = await Promise.all(uploads);
-          results.forEach(res => newUrls.push(res.data.secure_url));
+          newUrls.push(...results);
         }
         colorImageUrls[key] = [...existingUrls, ...newUrls];
       }
@@ -452,6 +438,9 @@ export function AdminDashboard() {
       const productData = {
         name: newProduct.name,
         description: newProduct.description,
+        brandName: newProduct.brandName || '',
+        pieceNumber: newProduct.pieceNumber || '',
+        designId: newProduct.designId || '',
         category: newProduct.category,
         price: Number(newProduct.price),
         discount: Number(newProduct.discount),
@@ -496,6 +485,9 @@ export function AdminDashboard() {
     setNewProduct({
       name: '',
       description: '',
+      brandName: '',
+      pieceNumber: '',
+      designId: '',
       category: '',
       price: '',
       discount: '0',
@@ -970,6 +962,7 @@ export function AdminDashboard() {
                       <thead>
                         <tr className="bg-gray-50/50">
                           <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Product</th>
+                          <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Design ID</th>
                           <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Category</th>
                           <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Price</th>
                           <th className="px-6 py-4 text-xs font-bold text-gray-400 uppercase tracking-widest">Stock</th>
@@ -992,6 +985,11 @@ export function AdminDashboard() {
                                     <p className="text-xs text-gray-500">#{product.id.slice(-6)}</p>
                                   </div>
                                 </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <span className="inline-block px-2 py-1 rounded-lg bg-amber-50 text-amber-700 text-[11px] font-bold border border-amber-200">
+                                  {product.designId || '—'}
+                                </span>
                               </td>
                               <td className="px-6 py-4 text-sm text-gray-600 capitalize">{product.categoryName || product.category}</td>
                               <td className="px-6 py-4 text-sm font-bold text-gray-900">₹{(product.price || 0).toLocaleString()}</td>
@@ -1391,6 +1389,63 @@ export function AdminDashboard() {
                   className="w-full bg-gray-50 border border-gray-200 rounded-2xl py-3 px-4 outline-none focus:border-[var(--brand-cta-green)] transition-all text-sm font-medium resize-none"
                   placeholder="Tell customers about the fabric, design, embroidery, fit, etc."
                 />
+              </div>
+
+              {/* Brand Name, Piece Number & Design ID */}
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-widest mb-3">🔒 Internal Fields (Not shown to customers)</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Brand Name (Internal)</label>
+                    <input
+                      type="text"
+                      value={newProduct.brandName}
+                      onChange={(e) => {
+                        const brand = e.target.value;
+                        const initials = brand.trim().slice(0, 2).toUpperCase();
+                        const now = new Date();
+                        const dd = String(now.getDate()).padStart(2, '0');
+                        const mm = String(now.getMonth() + 1).padStart(2, '0');
+                        const datePart = dd + mm;
+                        const piece = newProduct.pieceNumber || '';
+                        const designId = initials + datePart + (piece ? '/' + piece : '');
+                        setNewProduct({ ...newProduct, brandName: brand, designId });
+                      }}
+                      className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-4 outline-none focus:border-amber-400 transition-all text-sm font-medium"
+                      placeholder="e.g. Gucci, Zara..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Piece Number</label>
+                    <input
+                      type="text"
+                      value={newProduct.pieceNumber}
+                      onChange={(e) => {
+                        const piece = e.target.value;
+                        const brand = newProduct.brandName || '';
+                        const initials = brand.trim().slice(0, 2).toUpperCase();
+                        const now = new Date();
+                        const dd = String(now.getDate()).padStart(2, '0');
+                        const mm = String(now.getMonth() + 1).padStart(2, '0');
+                        const datePart = dd + mm;
+                        const designId = initials + datePart + (piece ? '/' + piece : '');
+                        setNewProduct({ ...newProduct, pieceNumber: piece, designId });
+                      }}
+                      className="w-full bg-white border border-amber-200 rounded-xl py-2.5 px-4 outline-none focus:border-amber-400 transition-all text-sm font-medium"
+                      placeholder="e.g. 101, 205..."
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-2">Design ID (Auto-generated)</label>
+                    <input
+                      type="text"
+                      readOnly
+                      value={newProduct.designId}
+                      className="w-full bg-amber-100 border border-amber-200 rounded-xl py-2.5 px-4 outline-none text-sm font-bold text-amber-800 cursor-not-allowed"
+                      placeholder="e.g. GU0802/101"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-end">

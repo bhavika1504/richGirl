@@ -220,20 +220,14 @@ export function ProductGrid() {
     .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
     .slice(0, 10);
 
-  // 2. Best Sellers: highest ratings.count (max 8-10 products)
+  // 2. Best Sellers: show popular/featured products (sorted by totalStock desc as proxy)
   const bestSellers = [...products]
-    .sort((a, b) => ((b.ratings?.count || 0) - (a.ratings?.count || 0)))
+    .sort((a, b) => ((b.originalPrice || b.price || 0) - (a.originalPrice || a.price || 0)))
     .slice(0, 10);
 
   // 3. Premium Collection: highest price (max 8-10 products)
   const premiumProducts = [...products]
     .sort((a, b) => b.price - a.price)
-    .slice(0, 10);
-
-  // 4. Deals of the Day: highest discount (max 8-10 products)
-  const dealProducts = [...products]
-    .filter(p => (p.discount || 0) > 0)
-    .sort((a, b) => (b.discount || 0) - (a.discount || 0))
     .slice(0, 10);
 
   return (
@@ -255,16 +249,6 @@ export function ProductGrid() {
         subtitle="Exclusive fabrics and intricate craftsmanship."
         products={premiumProducts}
         badgeGetter={() => ({ text: 'LUXE', className: 'bg-amber-50 text-amber-600 border border-amber-100' })}
-      />
-
-      <ProductSectionFormat1
-        title="Deals of the Day"
-        subtitle="Incredible styles at unbeatable prices."
-        products={dealProducts}
-        badgeGetter={(product: Product) => ({
-          text: `${product.discount}% OFF`,
-          className: 'bg-green-50 text-green-600 border border-green-100'
-        })}
       />
     </>
   );

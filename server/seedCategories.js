@@ -18,7 +18,8 @@ const categories = [
     
     { name: 'Tops', type: 'western', slug: 'tops-western', image: '/assets/top.jpg' },
     { name: 'Bottoms', type: 'western', slug: 'bottoms-western', image: '/assets/jeans.jpg' },
-    { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/westernCordSet.jpg' }
+    { name: 'Cord sets', type: 'western', slug: 'cord-sets-western', image: '/assets/westernCordSet.jpg' },
+    { name: 'Dresses', type: 'western', slug: 'dresses-western', image: '/assets/dresses.jpg' }
 ];
 
 async function seedCategories() {

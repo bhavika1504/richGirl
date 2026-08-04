@@ -2,6 +2,7 @@ import { Heart, Truck, Calendar, RefreshCw, Share2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { Link } from 'react-router';
 import { useState } from 'react';
+import { SizeGuideModal } from './SizeGuideModal';
 
 interface Product {
   id: string;
@@ -54,6 +55,7 @@ export function ProductInfo({
   const [isAdding, setIsAdding] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [isBuying, setIsBuying] = useState(false);
+  const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
 
   const handleAddToCart = async () => {
     if (!selectedSize || !selectedColor) {
@@ -140,32 +142,7 @@ export function ProductInfo({
         {product.name}
       </h1>
 
-      {/* Rating */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex gap-0.5">
-          {[...Array(5)].map((_, i) => (
-            <span
-              key={i}
-              style={{
-                fontSize: '16px',
-                color: i < Math.floor(product.ratings?.average || 0) ? 'var(--brand-cta-green)' : 'var(--brand-border)'
-              }}
-            >
-              ★
-            </span>
-          ))}
-        </div>
-        <span style={{ fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: '500', color: 'var(--brand-dark-text)' }}>
-          {product.ratings?.average || 0}
-        </span>
-        <a
-          href="#reviews"
-          className="hover:underline"
-          style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-secondary-text)' }}
-        >
-          ({product.ratings?.count || 0} reviews)
-        </a>
-      </div>
+
 
       {/* Price */}
       <div className="flex items-center gap-3 mb-5">
@@ -289,12 +266,13 @@ export function ProductInfo({
           <span style={{ fontFamily: 'var(--font-body)', fontSize: '12px', color: 'var(--brand-secondary-text)' }}>
             Size
           </span>
-          <div
-            className="flex items-center gap-1"
-            style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--brand-cta-green)', cursor: 'pointer' }}
+          <button
+            onClick={() => setIsSizeGuideOpen(true)}
+            className="flex items-center gap-1 hover:underline"
+            style={{ fontFamily: 'var(--font-body)', fontSize: '11px', color: 'var(--brand-cta-green)', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
           >
             Size Guide ↗
-          </div>
+          </button>
         </div>
         <div className="flex gap-2 flex-wrap">
           {product.sizes && product.sizes.map((szObj, idx) => {
@@ -481,6 +459,13 @@ export function ProductInfo({
           </motion.button>
         </div>
       </div>
+
+      {/* Size Guide Modal */}
+      <SizeGuideModal
+        isOpen={isSizeGuideOpen}
+        onClose={() => setIsSizeGuideOpen(false)}
+        sizeGuide={product.sizeGuide}
+      />
     </div>
   );
 }

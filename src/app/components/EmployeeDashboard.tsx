@@ -47,6 +47,9 @@ export function EmployeeDashboard() {
     const [newProduct, setNewProduct] = useState({
         name: '',
         description: '',
+        brandName: '',
+        pieceNumber: '',
+        designId: '',
         price: '',
         discount: '0',
         category: '',
@@ -120,49 +123,77 @@ export function EmployeeDashboard() {
     const handleAddProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const formData = new FormData();
-            formData.append('name', newProduct.name);
-            formData.append('description', newProduct.description);
-            formData.append('price', newProduct.price);
-            formData.append('discount', newProduct.discount);
-            formData.append('category', newProduct.category);
-            formData.append('type', newProduct.type);
-            formData.append('sizes', JSON.stringify(newProduct.sizes));
-            newProduct.images.forEach(img => formData.append('images', img));
+            const uploadedUrls: string[] = [];
+            for (const img of newProduct.images) {
+                if (typeof img === 'string') {
+                    uploadedUrls.push(img);
+                } else if (img instanceof File) {
+                    const url = await api.uploadImage(img);
+                    uploadedUrls.push(url);
+                }
+            }
 
-            await api.createProduct(formData);
+            const productData = {
+                name: newProduct.name,
+                description: newProduct.description,
+                brandName: newProduct.brandName || '',
+                pieceNumber: newProduct.pieceNumber || '',
+                designId: newProduct.designId || '',
+                price: Number(newProduct.price),
+                discount: Number(newProduct.discount),
+                category: newProduct.category,
+                type: newProduct.type,
+                sizes: newProduct.sizes,
+                images: uploadedUrls,
+                image: uploadedUrls[0] || ''
+            };
+
+            await api.createProduct(productData);
             setIsAddModalOpen(false);
             resetForm();
             fetchData();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to add product:', err);
-            alert('Failed to create product. Check all fields.');
+            alert(`Failed to create product: ${err.response?.data?.message || err.message}`);
         }
     };
 
     const handleUpdateProduct = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const formData = new FormData();
-            formData.append('name', newProduct.name);
-            formData.append('description', newProduct.description);
-            formData.append('price', newProduct.price);
-            formData.append('discount', newProduct.discount);
-            formData.append('category', newProduct.category);
-            formData.append('type', newProduct.type);
-            formData.append('sizes', JSON.stringify(newProduct.sizes));
-            if (newProduct.images.length > 0) {
-                newProduct.images.forEach(img => formData.append('images', img));
+            const uploadedUrls: string[] = [];
+            for (const img of newProduct.images) {
+                if (typeof img === 'string') {
+                    uploadedUrls.push(img);
+                } else if (img instanceof File) {
+                    const url = await api.uploadImage(img);
+                    uploadedUrls.push(url);
+                }
             }
 
-            await api.updateProduct(editingProduct._id || editingProduct.id, formData);
+            const productData = {
+                name: newProduct.name,
+                description: newProduct.description,
+                brandName: newProduct.brandName || '',
+                pieceNumber: newProduct.pieceNumber || '',
+                designId: newProduct.designId || '',
+                price: Number(newProduct.price),
+                discount: Number(newProduct.discount),
+                category: newProduct.category,
+                type: newProduct.type,
+                sizes: newProduct.sizes,
+                images: uploadedUrls,
+                image: uploadedUrls[0] || ''
+            };
+
+            await api.updateProduct(editingProduct._id || editingProduct.id, productData);
             setIsEditModalOpen(false);
             setEditingProduct(null);
             resetForm();
             fetchData();
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to update product:', err);
-            alert('Update failed.');
+            alert(`Failed to update product: ${err.response?.data?.message || err.message}`);
         }
     };
 
@@ -181,6 +212,9 @@ export function EmployeeDashboard() {
         setNewProduct({
             name: '',
             description: '',
+            brandName: '',
+            pieceNumber: '',
+            designId: '',
             price: '',
             discount: '0',
             category: '',
@@ -196,6 +230,9 @@ export function EmployeeDashboard() {
         setNewProduct({
             name: product.name,
             description: product.description,
+            brandName: product.brandName || '',
+            pieceNumber: product.pieceNumber || '',
+            designId: product.designId || '',
             price: product.price.toString(),
             discount: (product.discount || 0).toString(),
             category: product.category,
@@ -319,9 +356,12 @@ export function EmployeeDashboard() {
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-gray-900 text-sm mb-1">{product.name}</p>
-                                                        <div className="flex gap-2">
+                                                        <div className="flex gap-2 flex-wrap">
                                                             <span className="text-[10px] font-bold bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.category}</span>
                                                             <span className="text-[10px] font-bold bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">{product.type}</span>
+                                                            {product.designId && (
+                                                                <span className="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full uppercase tracking-tighter">ID: {product.designId}</span>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
@@ -402,6 +442,63 @@ export function EmployeeDashboard() {
                                                 className="w-full bg-[#F8FAF8] border-none rounded-2xl py-4 px-6 outline-none focus:ring-2 focus:ring-emerald-100 transition-all text-sm font-medium resize-none"
                                                 placeholder="Artisan craftsmanship meet modern silhouette..."
                                             />
+                                        </div>
+
+                                        {/* Internal Brand & Design ID fields */}
+                                        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
+                                            <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-3">🔒 Internal Fields</p>
+                                            <div className="grid grid-cols-2 gap-3 mb-3">
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Brand Name</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newProduct.brandName}
+                                                        onChange={(e) => {
+                                                            const brand = e.target.value;
+                                                            const initials = brand.trim().slice(0, 2).toUpperCase();
+                                                            const now = new Date();
+                                                            const dd = String(now.getDate()).padStart(2, '0');
+                                                            const mm = String(now.getMonth() + 1).padStart(2, '0');
+                                                            const datePart = dd + mm;
+                                                            const piece = newProduct.pieceNumber || '';
+                                                            const designId = initials + datePart + (piece ? '/' + piece : '');
+                                                            setNewProduct({ ...newProduct, brandName: brand, designId });
+                                                        }}
+                                                        className="w-full bg-white border border-amber-200 rounded-xl py-3 px-4 outline-none focus:border-amber-400 transition-all text-sm font-medium"
+                                                        placeholder="e.g. Zara..."
+                                                    />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Piece No.</label>
+                                                    <input
+                                                        type="text"
+                                                        value={newProduct.pieceNumber}
+                                                        onChange={(e) => {
+                                                            const piece = e.target.value;
+                                                            const brand = newProduct.brandName || '';
+                                                            const initials = brand.trim().slice(0, 2).toUpperCase();
+                                                            const now = new Date();
+                                                            const dd = String(now.getDate()).padStart(2, '0');
+                                                            const mm = String(now.getMonth() + 1).padStart(2, '0');
+                                                            const datePart = dd + mm;
+                                                            const designId = initials + datePart + (piece ? '/' + piece : '');
+                                                            setNewProduct({ ...newProduct, pieceNumber: piece, designId });
+                                                        }}
+                                                        className="w-full bg-white border border-amber-200 rounded-xl py-3 px-4 outline-none focus:border-amber-400 transition-all text-sm font-medium"
+                                                        placeholder="e.g. 101..."
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-2">Design ID (Auto)</label>
+                                                <input
+                                                    type="text"
+                                                    readOnly
+                                                    value={newProduct.designId}
+                                                    className="w-full bg-amber-100 border border-amber-200 rounded-xl py-3 px-4 outline-none text-sm font-bold text-amber-800 cursor-not-allowed"
+                                                    placeholder="e.g. ZA0802/101"
+                                                />
+                                            </div>
                                         </div>
                                     </div>
 

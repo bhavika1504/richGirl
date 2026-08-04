@@ -3,6 +3,9 @@ import mongoose from 'mongoose';
 const productSchema = new mongoose.Schema({
   name: { type: String, required: true },
   description: { type: String },
+  brandName: { type: String }, // Internal only - not displayed to customer
+  pieceNumber: { type: String },
+  designId: { type: String }, // e.g. GU0208/101
   category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category' },
   categoryName: { type: String },
   type: { type: String, enum: ['indian', 'western'] },
@@ -28,6 +31,10 @@ const productSchema = new mongoose.Schema({
   ratings: {
     average: { type: Number, default: 0 },
     count: { type: Number, default: 0 }
+  },
+  sizeGuide: {
+    headers: [{ type: String }],
+    rows: [[{ type: String }]]
   },
   isActive: { type: Boolean, default: true },
   isFeatured: { type: Boolean, default: false }

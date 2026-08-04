@@ -2,7 +2,7 @@ import { Navbar } from './Navbar';
 import { Hero } from './Hero';
 import { CategoryScroll } from './CategoryScroll';
 import { ProductGrid } from './ProductGrid';
-import { Testimonials } from './Testimonials';
+import { AboutUs } from './AboutUs';
 import { Footer } from './Footer';
 
 export function Home() {
@@ -13,7 +13,7 @@ export function Home() {
         <Hero />
         <CategoryScroll />
         <ProductGrid />
-        <Testimonials />
+        <AboutUs />
       </main>
       <Footer />
     </div>
