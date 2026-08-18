@@ -2,6 +2,8 @@
 
 Luxury fashion e-commerce platform built with React, Vite, Tailwind CSS, Express, and MongoDB.
 
+🌐 **Live Demo**: [https://rich-girl-omega.vercel.app/](https://rich-girl-omega.vercel.app/)
+
 ## Features
 - **Product Catalog**: Dynamic catalog with Indian & Western ethnic and modern wear.
 - **Colour & Size Variants**: Integrated color/size stock management with color-aware image galleries.
