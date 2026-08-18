@@ -26,8 +26,9 @@ const seedAdmin = async () => {
     }
 
     // Hash password
+    const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
     const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash('RGirl_ad1990!', salt);
+    const hashedPassword = await bcrypt.hash(adminPassword, salt);
 
     const newAdmin = new User({
       name: 'Super Admin',
@@ -41,8 +42,8 @@ const seedAdmin = async () => {
     await newAdmin.save();
     console.log('🎉 Admin user successfully created!');
     console.log('-----------------------------------');
-    console.log('Email: admin@richgirl.com');
-    console.log('Password: RGirl_ad1990!');
+    console.log('Email:', adminEmail);
+    console.log('Password:', adminPassword);
     console.log('-----------------------------------');
 
     process.exit(0);
